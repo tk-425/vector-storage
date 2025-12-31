@@ -1,6 +1,5 @@
-.agent
-.claude
 .code-graph
+.claude
+.agent
 .vmem.md
 .vmem.yml
-
