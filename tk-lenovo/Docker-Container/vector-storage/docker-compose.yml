@@ -1,0 +1,45 @@
+networks:
+  chroma-net:
+    driver: bridge
+
+services:
+  chroma:
+    image: chromadb/chroma:latest
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - /data/chroma:/data
+    environment:
+      - IS_PERSISTENT=TRUE
+      - ANONYMIZED_TELEMETRY=FALSE
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 2G
+        reservations:
+          memory: 512M
+    networks:
+      - chroma-net
+
+  vector-api:
+    build: ./vector-api
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      - OLLAMA_URL=http://192.168.1.154:11434
+      - CHROMA_URL=http://chroma:8000
+      - AUTH_TOKEN=${AUTH_TOKEN}
+    depends_on:
+      - chroma
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          memory: 256M
+    networks:
+      - chroma-net

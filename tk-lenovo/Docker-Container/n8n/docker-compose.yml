@@ -1,0 +1,99 @@
+networks:
+  backend:
+    driver: bridge
+  frontend:
+    driver: bridge
+
+services:
+  postgres:
+    image: postgres:15
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: n8n
+      POSTGRES_USER: n8n
+      POSTGRES_PASSWORD: ${DB_POSTGRESDB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1G
+        reservations:
+          memory: 512M
+    networks:
+      - backend
+
+  redis:
+    image: redis:7
+    restart: unless-stopped
+    command: redis-server --requirepass ${QUEUE_BULL_REDIS_PASSWORD}
+    volumes:
+      - redis_data:/data
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          memory: 256M
+    networks:
+      - backend
+
+  n8n-primary:
+    build: .
+    image: n8n-with-ai-cli
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    env_file:
+      - .env
+    environment:
+      N8N_DISABLE_PRODUCTION_MAIN_PROCESS: "true"
+      N8N_PROXY_HOPS: "1"
+    volumes:
+      - ${GEMINI_DATA_PATH}:/home/node/.gemini
+      - ${GEMINI_TMP_PATH}:/home/node/.gemini/tmp
+      - ${CODEX_DATA_PATH}:/home/node/.codex
+    depends_on:
+      - postgres
+      - redis
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1.5G
+        reservations:
+          memory: 768M
+    networks:
+      - backend
+      - frontend
+
+  n8n-worker:
+    build: .
+    image: n8n-with-ai-cli
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - ${GEMINI_DATA_PATH}:/home/node/.gemini
+      - ${GEMINI_TMP_PATH}:/home/node/.gemini/tmp
+      - ${CODEX_DATA_PATH}:/home/node/.codex
+    command: worker
+    depends_on:
+      - postgres
+      - redis
+    deploy:
+      resources:
+        limits:
+          cpus: "1.5"
+          memory: 2.5G
+        reservations:
+          memory: 1G
+    networks:
+      - backend
+
+volumes:
+  postgres_data:
+  redis_data:
+

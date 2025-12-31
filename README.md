@@ -75,14 +75,17 @@ vmem status
 
 ### Maintenance
 
-| Command                      | Purpose                           |
-| ---------------------------- | --------------------------------- |
-| `vmem ping`                  | Check server connectivity         |
-| `vmem history`               | Show recent saves                 |
-| `vmem history --global`      | Show global history               |
-| `vmem prune --duplicates`    | Remove duplicate entries          |
-| `vmem prune --older-than 30` | Remove entries older than 30 days |
-| `vmem prune --dry-run`       | Preview without deleting          |
+| Command                              | Purpose                           |
+| ------------------------------------ | --------------------------------- |
+| `vmem ping`                          | Check server connectivity         |
+| `vmem history`                       | Show recent saves                 |
+| `vmem history --global`              | Show global history               |
+| `vmem prune --duplicates`            | Remove duplicate entries          |
+| `vmem prune --older-than 30`         | Remove entries older than 30 days |
+| `vmem prune compact --all`           | Remove all compacts               |
+| `vmem prune compact --all --dry-run` | Preview compact removal           |
+| `vmem prune compact --older-than`    | Remove old compacts               |
+| `vmem prune --dry-run`               | Preview without deleting          |
 
 ### Compacts (Project Snapshots)
 

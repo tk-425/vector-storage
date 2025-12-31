@@ -312,6 +312,87 @@ class VectorMemory:
         except requests.exceptions.RequestException as e:
             print(f"✗ Error deleting compact: {e}", file=sys.stderr)
 
+    def prune_compact(self, scope: str = 'project', older_than_days: int = None,
+                     prune_all: bool = False, dry_run: bool = False, verbose: bool = False):
+        """Prune compacts based on criteria."""
+        from datetime import datetime, timedelta
+        
+        compacts = self._get_compacts(scope)
+        
+        if not compacts:
+            print(f"No compacts found")
+            return
+        
+        to_delete = []
+        
+        # Determine which compacts to delete
+        if prune_all:
+            to_delete = compacts
+        elif older_than_days:
+            cutoff = datetime.utcnow() - timedelta(days=older_than_days)
+            for compact in compacts:
+                meta = compact.get('metadata', {})
+                created_str = meta.get('created_at', '')
+                if created_str:
+                    try:
+                        created = datetime.fromisoformat(created_str.replace('Z', '+00:00'))
+                        if created.replace(tzinfo=None) < cutoff:
+                            to_delete.append(compact)
+                    except (ValueError, TypeError):
+                        pass
+        else:
+            print("Specify --all or --older-than to prune compacts")
+            return
+        
+        if not to_delete:
+            print("No compacts match the criteria")
+            return
+        
+        # Show what will be deleted
+        if scope == 'project':
+            project_id = self.get_project_id()
+            collection = f'project_{project_id}'
+        else:
+            collection = 'global'
+            
+        print(f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        print(f"📦 Compacts to delete from {collection}:")
+        print(f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        
+        for i, compact in enumerate(to_delete, 1):
+            meta = compact.get('metadata', {})
+            created = meta.get('created_at', 'Unknown')[:10] if meta.get('created_at') else 'Unknown'
+            
+            if verbose:
+                print(f"\n[{i}] ID: {compact.get('id', 'Unknown')}")
+                print(f"    Created: {created}")
+                print(f"    Text: {compact.get('text', '')[:100]}...")
+            else:
+                text = compact.get('text', '')[:50] + ('...' if len(compact.get('text', '')) > 50 else '')
+                print(f"[{i}] {created} | {text}")
+        
+        print(f"\nTotal to delete: {len(to_delete)}")
+        
+        if dry_run:
+            print("\nℹ️  Dry run - no changes made. Remove --dry-run to delete.")
+            return
+        
+        # Delete compacts
+        ids_to_delete = [c['id'] for c in to_delete]
+        try:
+            response = requests.post(
+                f'{self.base_url}/delete/document',
+                headers=self.headers,
+                json={'collection': collection, 'ids': ids_to_delete},
+                timeout=30
+            )
+            response.raise_for_status()
+            result = response.json()
+            print(f"\n✓ Deleted {result.get('deleted_count', len(ids_to_delete))} compacts")
+        except requests.exceptions.RequestException as e:
+            print(f"✗ Error deleting: {e}", file=sys.stderr)
+            sys.exit(1)
+
     def query(self, query: str, scope: str = 'project', top_k: int = 5, output_format: str = 'text') -> List[Dict]:
         """Query vector storage"""
         if scope == 'project':
@@ -506,6 +587,14 @@ After completing implementation tasks:
 | `vmem ping` | Check server connectivity |
 | `vmem history` | Show recent saves |
 | `vmem prune --duplicates` | Remove duplicate entries |
+| `vmem prune --older-than 30` | Remove entries >30 days old |
+| `vmem prune --dry-run` | Preview without deleting |
+| `vmem prune compact --all` | Remove all compacts |
+| `vmem prune compact --all --dry-run` | Preview compact removal |
+| `vmem prune compact --older-than 7` | Remove compacts >7 days old |
+| `vmem compact "text"` | Save project snapshot |
+| `vmem retrieve compact` | Get recent compact |
+| `vmem retrieve compact --all` | List all compacts |
 '''
         
         # Create .vmem.md
@@ -607,6 +696,102 @@ After completing implementation tasks:
             with open(settings_path, 'w') as f:
                 json.dump(hooks_config, f, indent=2)
             print(f"✓ Created .claude/settings.json (hooks enabled)")
+        
+        # Create .agent/rules/vmem.md for Gemini/Antigravity
+        agent_rules_dir = cwd / '.agent' / 'rules'
+        agent_rules_dir.mkdir(parents=True, exist_ok=True)
+        vmem_rules_path = agent_rules_dir / 'vmem.md'
+        
+        vmem_rules_content = '''# Agent Implementation Guide & Protocol
+
+This rule defines the standard operating procedure for **Gemini** when working in this workspace.
+
+## 1. PRE-WORK: Context Retrieval
+
+Before starting any significant task (coding, planning, or complex Q&A), you MUST check for existing context.
+
+### Auto-Retrieval
+
+- **Trigger**: You are starting a new task or "Implementation Phase".
+- **Action**: Run `vmem query` or `vmem search` with relevant keywords.
+- **Goal**: Prevent re-learning things you've already solved or documented.
+
+### Manual Retrieval
+
+- **Trigger**: User explicitly asks "How did we do X?" or "Check vmem for Y".
+- **Action**: Run `vmem query "exact user query"`.
+
+---
+
+## 2. EXECUTION: The Standard Loop
+
+1.  **Analyze**: Understand the request.
+2.  **Retrieve**: Check `vmem` (as above) and local files.
+3.  **Plan**: Create/Update `implementation_plan.md` (if complex).
+4.  **Execute**: Write code.
+5.  **Verify**: Test changes.
+
+---
+
+## 3. POST-WORK: Memory Retention
+
+After completing a task, you MUST consider saving technical insights for the future.
+
+### Auto-Save (The Default Path)
+
+1.  **Check Status**: Run `vmem status`.
+2.  **If ON**:
+    - **Action**: Automatically run `vmem save "Summary of what was done..."`.
+    - **Content**: Keep it concise (2-4 sentences). Focus on _decisions_ and _patterns_, not just file edits.
+3.  **If OFF**: Do NOT auto-save. Wait for user instruction.
+
+### Manual Save
+
+- **Trigger**: User says "remember this", "save this", or "store this".
+- **Action**: Run `vmem save "Content..." --force` (overrides the OFF status).
+
+### Compact (Project Snapshots)
+
+- **Trigger**: End of a major milestone or long session.
+- **Command**: `vmem compact "Comprehensive summary of the entire session..."`.
+- **Use Case**: When a simple 2-line save isn't enough to capture the complex state changes.
+
+---
+
+## 4. User Interaction Examples
+
+The user will **not** run CLI commands directly. They will give natural language instructions, and **YOU (The Agent)** must translate them into `vmem` tool calls.
+
+### Scenario A: Starting Work (Auto-Retrieval)
+
+- **User says**: "Let's implement the JWT auth flow."
+- **Agent does**:
+  1.  _Thinking_: "I should check if we have any existing patterns for this."
+  2.  _Tool Call_: `vmem query "JWT authentication patterns"`
+  3.  _Response_: "I see we previously used HS256. I'll stick to that..."
+
+### Scenario B: Saving Work (Manual Override)
+
+- **User says**: "Great job. Remember that this API requires the `Authorization: Bearer` header."
+- **Agent does**:
+  1.  _Thinking_: "User explicitly wants to store this fact."
+  2.  _Tool Call_: `vmem save "API Requirement: Endpoints require 'Authorization: Bearer' header." --force`
+  3.  _Response_: "Got it, I've saved that requirement to memory."
+
+### Scenario C: Checking Status
+
+- **User says**: "Is auto-memory on?"
+- **Agent does**:
+  1.  _Tool Call_: `vmem status`
+  2.  _Response_: "Yes, Auto-Save is currently ON for this project."
+'''
+        
+        if vmem_rules_path.exists():
+            print(f"ℹ️  .agent/rules/vmem.md already exists")
+        else:
+            with open(vmem_rules_path, 'w') as f:
+                f.write(vmem_rules_content)
+            print(f"✓ Created .agent/rules/vmem.md (Gemini rules)")
         
         print(f"\n✓ vmem initialized!")
         if not enable_hooks:
@@ -1006,12 +1191,16 @@ Examples:
 
     # Prune command
     prune_parser = subparsers.add_parser('prune', help='Remove duplicates and old entries')
+    prune_parser.add_argument('what', nargs='?', choices=['compact'],
+                             help='What to prune (compact = prune compacts only)')
     prune_parser.add_argument('--dry-run', action='store_true',
                              help='Preview without deleting')
     prune_parser.add_argument('--duplicates', action='store_true',
                              help='Remove entries with identical text')
     prune_parser.add_argument('--older-than', type=int, metavar='DAYS',
                              help='Remove entries older than N days')
+    prune_parser.add_argument('--all', dest='prune_all', action='store_true',
+                             help='Remove all (use with compact to remove all compacts)')
     prune_parser.add_argument('--global', dest='global_scope', action='store_true',
                              help='Prune global collection')
     prune_parser.add_argument('--verbose', '-v', action='store_true',
@@ -1081,9 +1270,14 @@ Examples:
 
     elif args.command == 'prune':
         scope = 'global' if args.global_scope else 'project'
-        vm.prune(scope=scope, older_than_days=args.older_than,
-                 duplicates=args.duplicates, dry_run=args.dry_run,
-                 verbose=args.verbose)
+        if args.what == 'compact':
+            vm.prune_compact(scope=scope, older_than_days=args.older_than,
+                           prune_all=args.prune_all, dry_run=args.dry_run,
+                           verbose=args.verbose)
+        else:
+            vm.prune(scope=scope, older_than_days=args.older_than,
+                     duplicates=args.duplicates, dry_run=args.dry_run,
+                     verbose=args.verbose)
 
     elif args.command == 'compact':
         scope = 'global' if args.global_scope else 'project'

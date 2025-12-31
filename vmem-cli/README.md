@@ -27,16 +27,17 @@ export VECTOR_AUTH_TOKEN="your-token"
 ## Quick Reference
 
 ```bash
-vmem save "text"          # Save to project
-vmem query "term"         # Search project
-vmem search "term"        # Search project + global
-vmem status               # Check auto-save mode
-vmem toggle on            # Enable auto-save
-vmem ping                 # Test connectivity
-vmem history              # Recent saves
-vmem prune --duplicates   # Remove duplicates
-vmem compact "text"       # Save project snapshot
-vmem retrieve compact     # Get latest compact
+vmem save "text"            # Save to project
+vmem query "term"           # Search project
+vmem search "term"          # Search project + global
+vmem status                 # Check auto-save mode
+vmem toggle on              # Enable auto-save
+vmem ping                   # Test connectivity
+vmem history                # Recent saves
+vmem prune --duplicates     # Remove duplicates
+vmem prune compact --all    # Remove all compacts
+vmem compact "text"         # Save project snapshot
+vmem retrieve compact       # Get latest compact
 ```
 
 ## Files
