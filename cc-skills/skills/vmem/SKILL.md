@@ -69,36 +69,40 @@ Also fixed YAML boolean bug in get_effective_mode(). Project uses FastAPI + Chro
 
 ## Commands
 
-| Command                             | Purpose                           |
-| ----------------------------------- | --------------------------------- |
-| `vmem query "term"`                 | Search project collection         |
-| `vmem query "term" --global`        | Search global collection          |
-| `vmem search "term"`                | Search project + global           |
-| `vmem save "text"`                  | Save to project (respects toggle) |
-| `vmem save "text" --global`         | Save to global                    |
-| `vmem save "text" --force`          | Force save to project             |
-| `vmem save "text" --global --force` | Force save to global              |
-| `vmem status`                       | Check auto-save toggle            |
-| `vmem status --json`                | Status as JSON (for scripts)      |
-| `vmem toggle on`                    | Enable project auto-save          |
-| `vmem toggle off`                   | Disable project auto-save         |
-| `vmem toggle on --scope global`     | Enable global auto-save           |
-| `vmem toggle off --scope global`    | Disable global auto-save          |
-| `vmem init`                         | Initialize vmem in project        |
-| `vmem ping`                         | Check server connectivity         |
-| `vmem history`                      | Show recent saves                 |
-| `vmem history --global`             | Show global history               |
-| `vmem prune --duplicates --dry-run` | Preview duplicate removal         |
-| `vmem prune --duplicates`           | Remove duplicate entries          |
-| `vmem prune --older-than 30`        | Remove entries older than 30 days |
-| `vmem init on`                      | Init with auto-save + hooks       |
-| `vmem compact "text"`               | Save project snapshot (max 5)     |
-| `vmem retrieve compact`             | Get most recent compact           |
-| `vmem retrieve compact 3`           | Get 3rd compact (1=newest)        |
-| `vmem retrieve compact --all`       | List all compacts                 |
+| Command                              | Purpose                           |
+| ------------------------------------ | --------------------------------- |
+| `vmem query "term"`                  | Search project collection         |
+| `vmem query "term" --global`         | Search global collection          |
+| `vmem search "term"`                 | Search project + global           |
+| `vmem save "text"`                   | Save to project (respects toggle) |
+| `vmem save "text" --global`          | Save to global                    |
+| `vmem save "text" --force`           | Force save to project             |
+| `vmem save "text" --global --force`  | Force save to global              |
+| `vmem status`                        | Check auto-save toggle            |
+| `vmem status --json`                 | Status as JSON (for scripts)      |
+| `vmem toggle on`                     | Enable project auto-save          |
+| `vmem toggle off`                    | Disable project auto-save         |
+| `vmem toggle on --scope global`      | Enable global auto-save           |
+| `vmem toggle off --scope global`     | Disable global auto-save          |
+| `vmem init`                          | Initialize vmem in project        |
+| `vmem ping`                          | Check server connectivity         |
+| `vmem history`                       | Show recent saves                 |
+| `vmem history --global`              | Show global history               |
+| `vmem prune --duplicates --dry-run`  | Preview duplicate removal         |
+| `vmem prune --duplicates`            | Remove duplicate entries          |
+| `vmem prune --older-than 30`         | Remove entries older than 30 days |
+| `vmem prune compact --all`           | Remove all compacts               |
+| `vmem prune compact --all --dry-run` | Preview compact removal           |
+| `vmem prune compact --older-than 7`  | Prune compacts >7 days old        |
+| `vmem init on`                       | Init with auto-save + hooks       |
+| `vmem compact "text"`                | Save project snapshot (max 5)     |
+| `vmem retrieve compact`              | Get most recent compact           |
+| `vmem retrieve compact 3`            | Get 3rd compact (1=newest)        |
+| `vmem retrieve compact --all`        | List all compacts                 |
 
 ## Maintenance
 
 - Use `vmem ping` to verify server is reachable before operations
 - Use `vmem history` to review what's been saved
 - Use `vmem prune --dry-run` before actual pruning to preview changes
+- Use `vmem prune compact --all --dry-run` to preview compact cleanup
