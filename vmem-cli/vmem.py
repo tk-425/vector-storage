@@ -4,6 +4,8 @@ vmem - Universal Vector Memory CLI
 Works with any AI agent (Claude Code, Codex, Gemini, etc.)
 """
 
+__version__ = "1.1.0"
+
 import os
 import sys
 import json
@@ -242,7 +244,8 @@ class VectorMemory:
             for i, compact in enumerate(compacts, 1):
                 meta = compact.get('metadata', {})
                 created = meta.get('created_at', 'Unknown')[:10] if meta.get('created_at') else 'Unknown'
-                text = compact.get('text', '')[:60] + ('...' if len(compact.get('text', '')) > 60 else '')
+                first_line = compact.get('text', '').split('\n')[0]
+                text = first_line[:60] + ('...' if len(first_line) > 60 else '')
                 print(f"[{i}] {created} | {text}")
             return compacts
         
@@ -393,6 +396,53 @@ class VectorMemory:
             print(f"✗ Error deleting: {e}", file=sys.stderr)
             sys.exit(1)
 
+    def delete_compact_by_index(self, index: int, scope: str = 'project', dry_run: bool = False):
+        """Delete a specific compact by index (1=newest)."""
+        compacts = self._get_compacts(scope)
+        
+        if not compacts:
+            print("No compacts found")
+            return
+        
+        if index < 1 or index > len(compacts):
+            print(f"Invalid index {index}. Valid range: 1-{len(compacts)}")
+            return
+        
+        compact = compacts[index - 1]
+        
+        if scope == 'project':
+            project_id = self.get_project_id()
+            collection = f'project_{project_id}'
+        else:
+            collection = 'global'
+        
+        meta = compact.get('metadata', {})
+        created = meta.get('created_at', 'Unknown')[:10] if meta.get('created_at') else 'Unknown'
+        text = compact.get('text', '')[:60] + ('...' if len(compact.get('text', '')) > 60 else '')
+        
+        print(f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        print(f"📦 Compact to delete:")
+        print(f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        print(f"[{index}] {created} | {text}")
+        print(f"ID: {compact.get('id', 'Unknown')}")
+        
+        if dry_run:
+            print("\nℹ️  Dry run - no changes made.")
+            return
+        
+        try:
+            response = requests.post(
+                f'{self.base_url}/delete/document',
+                headers=self.headers,
+                json={'collection': collection, 'ids': [compact['id']]},
+                timeout=30
+            )
+            response.raise_for_status()
+            print(f"\n✓ Deleted compact [{index}]")
+        except requests.exceptions.RequestException as e:
+            print(f"✗ Error deleting: {e}", file=sys.stderr)
+            sys.exit(1)
+
     def query(self, query: str, scope: str = 'project', top_k: int = 5, output_format: str = 'text') -> List[Dict]:
         """Query vector storage"""
         if scope == 'project':
@@ -529,27 +579,9 @@ class VectorMemory:
                 f.write(f"auto_save: {mode}\n")
             print(f"✓ Project auto-save set to: {mode}")
 
-    def init(self, enable_hooks: bool = False):
-        """Initialize vmem in current project
-        
-        Args:
-            enable_hooks: If True, set auto_save to 'on' and add Claude Code hooks
-        """
-        import json
-        cwd = Path.cwd()
-        
-        # Agent config files to look for
-        agent_files = ['CLAUDE.md', 'GEMINI.md', 'QWEN.md', 'AGENTS.md']
-        found_files = [f for f in agent_files if (cwd / f).exists()]
-        
-        # vmem reference to add
-        vmem_reference = """
-## Vector Memory
-For vmem commands and auto-save/retrieval behavior, read: `.vmem.md`
-"""
-        
-        # .vmem.md content
-        vmem_md_content = '''# vmem - Vector Memory
+    def _get_vmem_md_content(self) -> str:
+        """Get content for .vmem.md"""
+        return '''# vmem - Vector Memory
 
 ## AUTO-RETRIEVAL (Before work)
 When user asks about implementation, debugging, or "how did we do X":
@@ -595,7 +627,133 @@ After completing implementation tasks:
 | `vmem compact "text"` | Save project snapshot |
 | `vmem retrieve compact` | Get recent compact |
 | `vmem retrieve compact --all` | List all compacts |
+| `vmem delete compact 2` | Delete compact at index 2 |
 '''
+
+    def _get_gemini_rules_content(self) -> str:
+        """Get content for .agent/rules/vmem.md"""
+        return '''# Agent Implementation Guide & Protocol
+
+This rule defines the standard operating procedure for **Gemini** when working in this workspace.
+
+## 1. PRE-WORK: Context Retrieval
+
+Before starting any significant task (coding, planning, or complex Q&A), you MUST check for existing context.
+
+### Auto-Retrieval
+
+- **Trigger**: You are starting a new task or "Implementation Phase".
+- **Action**: Run `vmem query` or `vmem search` with relevant keywords.
+- **Goal**: Prevent re-learning things you've already solved or documented.
+
+### Manual Retrieval
+
+- **Trigger**: User explicitly asks "How did we do X?" or "Check vmem for Y".
+- **Action**: Run `vmem query "exact user query"`.
+
+---
+
+## 2. EXECUTION: The Standard Loop
+
+1.  **Analyze**: Understand the request.
+2.  **Retrieve**: Check `vmem` (as above) and local files.
+3.  **Plan**: Create/Update `implementation_plan.md` (if complex).
+4.  **Execute**: Write code.
+5.  **Verify**: Test changes.
+
+---
+
+## 3. POST-WORK: Memory Retention
+
+After completing a task, you MUST consider saving technical insights for the future.
+
+### Auto-Save (The Default Path)
+
+1.  **Check Status**: Run `vmem status`.
+2.  **If ON**:
+    - **Action**: Automatically run `vmem save "Summary of what was done..."`.
+    - **Content**: Keep it concise (2-4 sentences). Focus on _decisions_ and _patterns_, not just file edits.
+3.  **If OFF**: Do NOT auto-save. Wait for user instruction.
+
+### Manual Save
+
+- **Trigger**: User says "remember this", "save this", or "store this".
+- **Action**: Run `vmem save "Content..." --force` (overrides the OFF status).
+
+### Compact (Project Snapshots)
+
+- **Trigger**: End of a major milestone or long session.
+- **Command**: `vmem compact "Comprehensive summary..."`.
+- **Delete by index**: `vmem delete compact 2` (deletes compact #2).
+- **Use Case**: When a simple 2-line save isn't enough to capture the complex state changes.
+
+**For long multi-line compacts**, use heredoc to avoid shell quoting issues:
+
+```bash
+cat << 'EOF' | xargs -0 vmem compact
+Session summary here...
+
+BUG FIXES:
+- Fixed X in file.py
+
+NEW FEATURES:
+- Added Y command
+
+FILES: file1.py, file2.md
+EOF
+```
+
+---
+
+## 4. User Interaction Examples
+
+The user will **not** run CLI commands directly. They will give natural language instructions, and **YOU (The Agent)** must translate them into `vmem` tool calls.
+
+### Scenario A: Starting Work (Auto-Retrieval)
+
+- **User says**: "Let's implement the JWT auth flow."
+- **Agent does**:
+  1.  _Thinking_: "I should check if we have any existing patterns for this."
+  2.  _Tool Call_: `vmem query "JWT authentication patterns"`
+  3.  _Response_: "I see we previously used HS256. I'll stick to that..."
+
+### Scenario B: Saving Work (Manual Override)
+
+- **User says**: "Great job. Remember that this API requires the `Authorization: Bearer` header."
+- **Agent does**:
+  1.  _Thinking_: "User explicitly wants to store this fact."
+  2.  _Tool Call_: `vmem save "API Requirement: Endpoints require 'Authorization: Bearer' header." --force`
+  3.  _Response_: "Got it, I've saved that requirement to memory."
+
+### Scenario C: Checking Status
+
+- **User says**: "Is auto-memory on?"
+- **Agent does**:
+  1.  _Tool Call_: `vmem status`
+  2.  _Response_: "Yes, Auto-Save is currently ON for this project."
+'''
+
+    def init(self, enable_hooks: bool = False):
+        """Initialize vmem in current project
+        
+        Args:
+            enable_hooks: If True, set auto_save to 'on' and add Claude Code hooks
+        """
+        import json
+        cwd = Path.cwd()
+        
+        # Agent config files to look for
+        agent_files = ['CLAUDE.md', 'GEMINI.md', 'QWEN.md', 'AGENTS.md']
+        found_files = [f for f in agent_files if (cwd / f).exists()]
+        
+        # vmem reference to add
+        vmem_reference = """
+## Vector Memory
+For vmem commands and auto-save/retrieval behavior, read: `.vmem.md`
+"""
+        
+        # .vmem.md content
+        vmem_md_content = self._get_vmem_md_content()
         
         # Create .vmem.md
         vmem_md_path = cwd / '.vmem.md'
@@ -618,6 +776,23 @@ After completing implementation tasks:
             with open(vmem_yml_path, 'w') as f:
                 f.write("auto_save: on\n")
             print(f"✓ Updated .vmem.yml (auto_save: on)")
+
+        # Create .agent/rules/vmem.md (Gemini rules)
+        agent_rules_dir = cwd / '.agent' / 'rules'
+        agent_rules_path = agent_rules_dir / 'vmem.md'
+        
+        gemini_rules_content = self._get_gemini_rules_content()
+
+        if not agent_rules_path.exists():
+            try:
+                agent_rules_dir.mkdir(parents=True, exist_ok=True)
+                with open(agent_rules_path, 'w') as f:
+                    f.write(gemini_rules_content)
+                print(f"✓ Created .agent/rules/vmem.md")
+            except OSError as e:
+                print(f"⚠ Could not create .agent/rules/vmem.md: {e}")
+        else:
+             print(f"ℹ️  .agent/rules/vmem.md already exists")
         
         # Update agent config files
         if found_files:
@@ -697,106 +872,59 @@ After completing implementation tasks:
                 json.dump(hooks_config, f, indent=2)
             print(f"✓ Created .claude/settings.json (hooks enabled)")
         
-        # Create .agent/rules/vmem.md for Gemini/Antigravity
-        agent_rules_dir = cwd / '.agent' / 'rules'
-        agent_rules_dir.mkdir(parents=True, exist_ok=True)
-        vmem_rules_path = agent_rules_dir / 'vmem.md'
-        
-        vmem_rules_content = '''# Agent Implementation Guide & Protocol
-
-This rule defines the standard operating procedure for **Gemini** when working in this workspace.
-
-## 1. PRE-WORK: Context Retrieval
-
-Before starting any significant task (coding, planning, or complex Q&A), you MUST check for existing context.
-
-### Auto-Retrieval
-
-- **Trigger**: You are starting a new task or "Implementation Phase".
-- **Action**: Run `vmem query` or `vmem search` with relevant keywords.
-- **Goal**: Prevent re-learning things you've already solved or documented.
-
-### Manual Retrieval
-
-- **Trigger**: User explicitly asks "How did we do X?" or "Check vmem for Y".
-- **Action**: Run `vmem query "exact user query"`.
-
----
-
-## 2. EXECUTION: The Standard Loop
-
-1.  **Analyze**: Understand the request.
-2.  **Retrieve**: Check `vmem` (as above) and local files.
-3.  **Plan**: Create/Update `implementation_plan.md` (if complex).
-4.  **Execute**: Write code.
-5.  **Verify**: Test changes.
-
----
-
-## 3. POST-WORK: Memory Retention
-
-After completing a task, you MUST consider saving technical insights for the future.
-
-### Auto-Save (The Default Path)
-
-1.  **Check Status**: Run `vmem status`.
-2.  **If ON**:
-    - **Action**: Automatically run `vmem save "Summary of what was done..."`.
-    - **Content**: Keep it concise (2-4 sentences). Focus on _decisions_ and _patterns_, not just file edits.
-3.  **If OFF**: Do NOT auto-save. Wait for user instruction.
-
-### Manual Save
-
-- **Trigger**: User says "remember this", "save this", or "store this".
-- **Action**: Run `vmem save "Content..." --force` (overrides the OFF status).
-
-### Compact (Project Snapshots)
-
-- **Trigger**: End of a major milestone or long session.
-- **Command**: `vmem compact "Comprehensive summary of the entire session..."`.
-- **Use Case**: When a simple 2-line save isn't enough to capture the complex state changes.
-
----
-
-## 4. User Interaction Examples
-
-The user will **not** run CLI commands directly. They will give natural language instructions, and **YOU (The Agent)** must translate them into `vmem` tool calls.
-
-### Scenario A: Starting Work (Auto-Retrieval)
-
-- **User says**: "Let's implement the JWT auth flow."
-- **Agent does**:
-  1.  _Thinking_: "I should check if we have any existing patterns for this."
-  2.  _Tool Call_: `vmem query "JWT authentication patterns"`
-  3.  _Response_: "I see we previously used HS256. I'll stick to that..."
-
-### Scenario B: Saving Work (Manual Override)
-
-- **User says**: "Great job. Remember that this API requires the `Authorization: Bearer` header."
-- **Agent does**:
-  1.  _Thinking_: "User explicitly wants to store this fact."
-  2.  _Tool Call_: `vmem save "API Requirement: Endpoints require 'Authorization: Bearer' header." --force`
-  3.  _Response_: "Got it, I've saved that requirement to memory."
-
-### Scenario C: Checking Status
-
-- **User says**: "Is auto-memory on?"
-- **Agent does**:
-  1.  _Tool Call_: `vmem status`
-  2.  _Response_: "Yes, Auto-Save is currently ON for this project."
-'''
-        
-        if vmem_rules_path.exists():
-            print(f"ℹ️  .agent/rules/vmem.md already exists")
-        else:
-            with open(vmem_rules_path, 'w') as f:
-                f.write(vmem_rules_content)
-            print(f"✓ Created .agent/rules/vmem.md (Gemini rules)")
-        
         print(f"\n✓ vmem initialized!")
         if not enable_hooks:
             print(f"  Run 'vmem toggle on' to enable auto-save.")
             print(f"  Or use 'vmem init on' to enable hooks.")
+
+    def update_project(self):
+        """Update vmem documentation in current project"""
+        cwd = Path.cwd()
+        
+        files_to_update = [
+            (cwd / '.vmem.md', self._get_vmem_md_content()),
+            (cwd / '.agent' / 'rules' / 'vmem.md', self._get_gemini_rules_content())
+        ]
+        
+        updated_count = 0
+        
+        for file_path, content in files_to_update:
+            if not file_path.parent.exists():
+                try:
+                    file_path.parent.mkdir(parents=True, exist_ok=True)
+                except OSError:
+                    continue
+
+            if file_path.exists():
+                with open(file_path, 'r') as f:
+                    current = f.read()
+                
+                if current == content:
+                    print(f"✓ {file_path.name} is up to date")
+                    continue
+                
+                # Backup
+                backup_path = file_path.with_suffix('.md.bak')
+                try:
+                    with open(backup_path, 'w') as f:
+                        f.write(current)
+                    print(f"  Backed up {file_path.name} to {backup_path.name}")
+                except OSError:
+                    print(f"⚠ Failed to backup {file_path.name}")
+            
+            # Write new content
+            try:
+                with open(file_path, 'w') as f:
+                    f.write(content)
+                print(f"✓ Updated {file_path.name}")
+                updated_count += 1
+            except OSError as e:
+                print(f"✗ Failed to update {file_path.name}: {e}")
+        
+        if updated_count > 0:
+            print(f"\n✨ Updated {updated_count} files to vmem {__version__}")
+        else:
+            print(f"\n✨ All files are up to date (vmem {__version__})")
 
     def hooks(self, action: str):
         """Manage Claude Code hooks"""
@@ -1122,6 +1250,8 @@ Examples:
   vmem toggle on
         """
     )
+    
+    parser.add_argument('--version', action='version', version=f'%(prog)s {__version__}')
 
     subparsers = parser.add_subparsers(dest='command', help='Command to execute')
 
@@ -1174,6 +1304,9 @@ Examples:
     init_parser.add_argument('mode', nargs='?', choices=['on'],
                             help='Use "on" to enable auto-save and hooks')
 
+    # Update command
+    subparsers.add_parser('update', help='Update vmem documentation files (vmem.md)')
+
     # Hooks command
     hooks_parser = subparsers.add_parser('hooks', help='Manage Claude Code hooks')
     hooks_parser.add_argument('action', choices=['on', 'off', 'status'],
@@ -1222,6 +1355,15 @@ Examples:
     retrieve_parser.add_argument('--global', dest='global_scope', action='store_true',
                                 help='Retrieve from global collection')
 
+    # Delete command
+    delete_parser = subparsers.add_parser('delete', help='Delete specific items')
+    delete_parser.add_argument('what', choices=['compact'], help='What to delete')
+    delete_parser.add_argument('index', type=int, help='Index to delete (1=newest)')
+    delete_parser.add_argument('--dry-run', action='store_true',
+                              help='Preview without deleting')
+    delete_parser.add_argument('--global', dest='global_scope', action='store_true',
+                              help='Delete from global collection')
+
     args = parser.parse_args()
 
     if not args.command:
@@ -1261,6 +1403,9 @@ Examples:
     elif args.command == 'hooks':
         vm.hooks(args.action)
 
+    elif args.command == 'update':
+        vm.update_project()
+
     elif args.command == 'ping':
         vm.ping()
 
@@ -1287,6 +1432,11 @@ Examples:
         if args.what == 'compact':
             scope = 'global' if args.global_scope else 'project'
             vm.retrieve_compact(index=args.index, scope=scope, show_all=args.show_all)
+
+    elif args.command == 'delete':
+        if args.what == 'compact':
+            scope = 'global' if args.global_scope else 'project'
+            vm.delete_compact_by_index(index=args.index, scope=scope, dry_run=args.dry_run)
 
 
 if __name__ == '__main__':

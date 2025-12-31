@@ -99,6 +99,7 @@ Also fixed YAML boolean bug in get_effective_mode(). Project uses FastAPI + Chro
 | `vmem retrieve compact`              | Get most recent compact           |
 | `vmem retrieve compact 3`            | Get 3rd compact (1=newest)        |
 | `vmem retrieve compact --all`        | List all compacts                 |
+| `vmem delete compact 2`              | Delete compact at index 2         |
 
 ## Maintenance
 
