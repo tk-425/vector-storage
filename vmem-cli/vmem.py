@@ -4,7 +4,7 @@ vmem - Universal Vector Memory CLI
 Works with any AI agent (Claude Code, Codex, Gemini, etc.)
 """
 
-__version__ = "1.1.0"
+__version__ = "1.1.2"
 
 import os
 import sys
@@ -550,6 +550,17 @@ class VectorMemory:
         
         print(f"Current project: {self.get_project_id()}")
         print(f"Vector API: {self.base_url}")
+        
+        # Check connectivity
+        try:
+            print("Connectivity: ", end='', flush=True)
+            response = requests.get(f"{self.base_url}/health", timeout=2)
+            if response.status_code == 200:
+                print("✅ Online")
+            else:
+                print(f"⚠️  Issues (Status: {response.status_code})")
+        except Exception as e:
+            print(f"❌ Unreachable ({e})")
 
     def toggle(self, mode: str, scope: str = 'global'):
         """Toggle auto-save mode"""
@@ -733,6 +744,61 @@ The user will **not** run CLI commands directly. They will give natural language
   2.  _Response_: "Yes, Auto-Save is currently ON for this project."
 '''
 
+    def _update_gitignore(self):
+        """Add vmem and agent files to .gitignore if not already ignored"""
+        cwd = Path.cwd()
+        gitignore_path = cwd / '.gitignore'
+        
+        items_to_ignore = [
+            '# vmem',
+            '.vmem.md',
+            '.vmem.yml',
+            '',
+            '# Agent tools',
+            '.agent/',
+            '.claude/',
+            '.codex/',
+            '.code-graph/',
+            '',
+            '# Agent markdown files',
+            'AGENTS.md',
+            'CLAUDE.md',
+            'GEMINI.md',
+            'QWEN.md'
+        ]
+        
+        existing_lines = set()
+        if gitignore_path.exists():
+            with open(gitignore_path, 'r') as f:
+                existing_lines = {line.strip() for line in f if line.strip()}
+        
+        # Filter items that are already in gitignore
+        # We skip comments and empty lines for the "already exists" check
+        to_add = []
+        for item in items_to_ignore:
+            if not item or item.startswith('#'):
+                to_add.append(item)
+            elif item not in existing_lines:
+                to_add.append(item)
+        
+        # If no real items (non-comments/non-empty) to add, just exit
+        real_additions = [i for i in to_add if i and not i.startswith('#')]
+        if not real_additions:
+            # We still might want to add comments if the file is empty or missing, 
+            # but usually better to just skip if the core files are already ignored.
+            return
+
+        mode = 'a' if gitignore_path.exists() else 'w'
+        try:
+            with open(gitignore_path, mode) as f:
+                if mode == 'a':
+                    f.write('\n\n')
+                f.write('\n'.join(to_add) + '\n')
+            print(f"✓ Updated .gitignore")
+        except OSError as e:
+            print(f"⚠ Could not update .gitignore: {e}")
+
+
     def init(self, enable_hooks: bool = False):
         """Initialize vmem in current project
         
@@ -794,6 +860,9 @@ For vmem commands and auto-save/retrieval behavior, read: `.vmem.md`
         else:
              print(f"ℹ️  .agent/rules/vmem.md already exists")
         
+        # Update .gitignore
+        self._update_gitignore()
+
         # Update agent config files
         if found_files:
             for filename in found_files:
