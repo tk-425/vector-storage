@@ -72,6 +72,7 @@ vmem status
 | `vmem toggle off`    | Disable project auto-save    |
 | `vmem init`          | Initialize vmem in project   |
 | `vmem init on`       | Init with auto-save + hooks  |
+| `vmem uninit`        | Complete project teardown    |
 
 ### Maintenance
 
