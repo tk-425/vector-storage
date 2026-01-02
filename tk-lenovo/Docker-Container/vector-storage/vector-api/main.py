@@ -61,6 +61,10 @@ class DeleteRequest(BaseModel):
     ids: list[str]
 
 
+class UninitProjectRequest(BaseModel):
+    project_id: str
+
+
 # --- Auth ---
 
 async def verify_token(authorization: str = Header(None)):
@@ -324,3 +328,22 @@ async def delete_document(request: DeleteRequest, _: bool = Depends(verify_token
         "deleted_count": len(request.ids),
         "deleted_ids": request.ids
     }
+
+
+@app.post("/delete/project")
+async def delete_project(request: UninitProjectRequest, _: bool = Depends(verify_token)):
+    """Drop the entire project collection"""
+    collection_name = f"project_{request.project_id}"
+    
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        # ChromaDB Delete Collection endpoint: DELETE /collections/{name}
+        response = await client.delete(f"{CHROMA_API_BASE}/collections/{collection_name}")
+        
+        if response.status_code == 404:
+            # If it doesn't exist, we consider it a success (idempotent)
+            return {"status": "success", "message": f"Project collection '{collection_name}' not found, nothing to delete"}
+            
+        if response.status_code not in [200, 204]:
+            raise HTTPException(status_code=500, detail=f"ChromaDB delete error: {response.text}")
+            
+        return {"status": "success", "message": f"Project collection '{collection_name}' deleted"}

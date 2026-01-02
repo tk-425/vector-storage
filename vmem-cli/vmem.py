@@ -4,7 +4,7 @@ vmem - Universal Vector Memory CLI
 Works with any AI agent (Claude Code, Codex, Gemini, etc.)
 """
 
-__version__ = "1.1.2"
+__version__ = "1.1.3"
 
 import os
 import sys
@@ -946,6 +946,105 @@ For vmem commands and auto-save/retrieval behavior, read: `.vmem.md`
             print(f"  Run 'vmem toggle on' to enable auto-save.")
             print(f"  Or use 'vmem init on' to enable hooks.")
 
+    def uninit(self):
+        """Uninitialize vmem in current project (Complete Teardown)"""
+        cwd = Path.cwd()
+        project_id = self.get_project_id()
+
+        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        print("⚠️  vmem Uninitialization (Project Teardown)")
+        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        print(f"Project: {project_id}")
+        print("\nThis will:")
+        print("  1. Remove all local vmem documentation and config files.")
+        print("  2. Surgical removal of vmem hooks from .claude/settings.json.")
+        print("  3. PERMANENTLY DELETE all memory for this project from the server.")
+        
+        try:
+            confirm = input("\nAre you sure you want to proceed? [y/N]: ").strip().lower()
+            if confirm != 'y':
+                print("Aborted.")
+                return
+        except (EOFError, KeyboardInterrupt):
+            print("\nAborted.")
+            return
+
+        # 1. Server-side deletion
+        print("\nDeleting remote project collection...", end='', flush=True)
+        try:
+            response = requests.post(
+                f'{self.base_url}/delete/project',
+                headers=self.headers,
+                json={'project_id': project_id},
+                timeout=30
+            )
+            if response.status_code == 200:
+                print(" ✓ Deleted")
+            else:
+                print(f" ✗ Failed (Status: {response.status_code})")
+                # Continue anyway to clean up local files
+        except Exception as e:
+            print(f" ✗ Error: {e}")
+
+        # 2. Local file deletion
+        files_to_delete = [
+            cwd / '.vmem.md',
+            cwd / '.vmem.yml',
+            cwd / '.agent' / 'rules' / 'vmem.md'
+        ]
+        
+        for file_path in files_to_delete:
+            if file_path.exists():
+                try:
+                    file_path.unlink()
+                    print(f"✓ Deleted {file_path.name}")
+                except OSError as e:
+                    print(f"⚠ Could not delete {file_path.name}: {e}")
+
+        # 3. Strip references from agent config files
+        agent_files = ['CLAUDE.md', 'GEMINI.md', 'QWEN.md', 'AGENTS.md']
+        vmem_ref_snippet = "## Vector Memory\nFor vmem commands and auto-save/retrieval behavior, read: `.vmem.md`"
+        
+        for filename in agent_files:
+            filepath = cwd / filename
+            if filepath.exists():
+                try:
+                    with open(filepath, 'r') as f:
+                        content = f.read()
+                    
+                    if vmem_ref_snippet in content:
+                        new_content = content.replace(vmem_ref_snippet, "").strip()
+                        with open(filepath, 'w') as f:
+                            f.write(new_content)
+                        print(f"✓ Cleaned {filename}")
+                except Exception as e:
+                    print(f"⚠ Could not clean {filename}: {e}")
+
+        # 4. Cleanup .gitignore
+        gitignore_path = cwd / '.gitignore'
+        if gitignore_path.exists():
+            try:
+                with open(gitignore_path, 'r') as f:
+                    lines = f.readlines()
+                
+                # Specific lines to remove
+                to_remove = {'.vmem.md', '.vmem.yml', '# vmem'}
+                new_lines = [l for l in lines if l.strip() not in to_remove]
+                
+                # If we have '# Agent tools' but nothing after it (or just empty lines), we could clean that too
+                # but let's keep it simple for now and just remove the most obvious artifacts.
+                
+                with open(gitignore_path, 'w') as f:
+                    f.writelines(new_lines)
+                print("✓ Cleaned .gitignore")
+            except Exception as e:
+                print(f"⚠ Could not clean .gitignore: {e}")
+
+        # 5. Remove Claude hooks
+        self.hooks('off')
+
+        print(f"\n✨ vmem has been completely uninitialized for this project.")
+
     def update_project(self):
         """Update vmem documentation in current project"""
         cwd = Path.cwd()
@@ -1373,6 +1472,9 @@ Examples:
     init_parser.add_argument('mode', nargs='?', choices=['on'],
                             help='Use "on" to enable auto-save and hooks')
 
+    # Uninit command
+    subparsers.add_parser('uninit', help='Completely remove vmem from project (local & remote)')
+
     # Update command
     subparsers.add_parser('update', help='Update vmem documentation files (vmem.md)')
 
@@ -1468,6 +1570,9 @@ Examples:
     elif args.command == 'init':
         enable_hooks = args.mode == 'on' if hasattr(args, 'mode') and args.mode else False
         vm.init(enable_hooks=enable_hooks)
+
+    elif args.command == 'uninit':
+        vm.uninit()
 
     elif args.command == 'hooks':
         vm.hooks(args.action)

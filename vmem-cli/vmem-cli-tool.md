@@ -266,6 +266,25 @@ vmem init on
 
 ---
 
+### vmem uninit
+
+Completely remove vmem from the current project. This is a destructive operation that clears both local artifacts and remote data.
+
+```bash
+vmem uninit
+```
+
+**`vmem uninit` performs:**
+
+1. **Confirms** with the user before proceeding.
+2. **Deletes remote data**: Drops the project collection on the server.
+3. **Deletes local files**: Removes `.vmem.md`, `.vmem.yml`, and `.agent/rules/vmem.md`.
+4. **Cleans agent configs**: Strips vmem references from `CLAUDE.md`, `GEMINI.md`, etc.
+5. **Cleans .gitignore**: Removes vmem-related entries.
+6. **Disables hooks**: Removes vmem hooks from `.claude/settings.json`.
+
+---
+
 ### vmem save compact
 
 Save a comprehensive project snapshot. Unlike regular saves (2-4 sentences), compacts can be long. Only 5 compacts are kept per project — oldest is auto-deleted when 6th is added.
