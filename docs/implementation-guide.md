@@ -1,6 +1,6 @@
 # Vector Storage Server Implementation
 
-Guide for setting up the vector storage server on tk-lenovo.
+Guide for setting up the vector storage server.
 
 > **Note:** The current implementation uses a FastAPI service at `vector-storage/vector-api/main.py`. Earlier versions used n8n as a gateway — those references are obsolete.
 
@@ -9,7 +9,7 @@ Guide for setting up the vector storage server on tk-lenovo.
 ## Architecture
 
 ```
-Client (MacBook)                     Server (tk-lenovo)
+Client                               Server
 ┌─────────────────┐                  ┌─────────────────────────┐
 │ vmem CLI        │                  │ Docker Compose          │
 │                 │    HTTPS/ngrok   │ ┌─────────────────────┐ │
@@ -37,7 +37,7 @@ Client (MacBook)                     Server (tk-lenovo)
 ### Directory Structure
 
 ```
-/home/tk-lenovo/Docker-Container/vector-storage/
+/path/to/vector-storage/
 ├── docker-compose.yml
 ├── vector-api/
 │   ├── main.py
@@ -77,7 +77,7 @@ services:
 ### Start Server
 
 ```bash
-cd /home/tk-lenovo/Docker-Container/vector-storage
+cd /path/to/vector-storage
 docker compose up -d
 ```
 
@@ -173,7 +173,7 @@ docker compose logs -f vector-api
 
 ## Client Configuration
 
-On your MacBook, set environment variables:
+On your local machine, set environment variables:
 
 ```bash
 export VECTOR_BASE_URL="https://your-ngrok-url.ngrok-free.dev"

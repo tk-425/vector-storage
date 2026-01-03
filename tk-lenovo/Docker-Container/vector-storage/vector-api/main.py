@@ -15,7 +15,7 @@ from pydantic import BaseModel
 app = FastAPI(title="Vector Storage API", version="1.0.0")
 
 # Configuration from environment
-OLLAMA_URL = os.getenv("OLLAMA_URL", "http://192.168.1.154:11434")
+OLLAMA_URL = os.getenv("OLLAMA_URL", "http://host.docker.internal:11434")
 CHROMA_URL = os.getenv("CHROMA_URL", "http://chroma:8000")
 AUTH_TOKEN = os.getenv("AUTH_TOKEN", "")
 CHROMA_API_BASE = f"{CHROMA_URL}/api/v2/tenants/default_tenant/databases/default_database"

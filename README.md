@@ -5,7 +5,7 @@ A persistent vector memory system for AI agents. Saves and retrieves context acr
 ## Architecture
 
 ```
-MacBook (Client)                    tk-lenovo (Server)
+Local (Client)                      Remote (Server)
 ┌────────────────────┐              ┌────────────────────┐
 │ AI Agent           │              │ Docker Compose     │
 │ (Claude/Gemini/...)│              │ ┌────────────────┐ │
@@ -140,7 +140,7 @@ For vmem commands and auto-save/retrieval behavior, read: `.vmem.md`
 
 ---
 
-## Server Setup (tk-lenovo)
+## Server Setup
 
 ### Prerequisites
 
@@ -151,7 +151,7 @@ For vmem commands and auto-save/retrieval behavior, read: `.vmem.md`
 ### Location
 
 ```
-/home/tk-lenovo/Docker-Container/vector-storage/
+/path/to/vector-storage/
 ├── docker-compose.yml
 ├── vector-api/
 │   └── main.py
@@ -162,11 +162,11 @@ For vmem commands and auto-save/retrieval behavior, read: `.vmem.md`
 ### Start Server
 
 ```bash
-cd /home/tk-lenovo/Docker-Container/vector-storage
+cd /path/to/vector-storage
 docker compose up -d
 ```
 
-### Environment Variables (MacBook)
+### Environment Variables (Remote)
 
 Add to `~/.zshrc`:
 
@@ -191,7 +191,7 @@ vector-storage/
 │   └── skills/vmem/SKILL.md
 ├── vmem-cli/             # CLI implementation
 │   └── vmem.py
-└── vector-storage/       # Server code (for tk-lenovo)
+└── vector-storage/       # Server code
     └── vector-api/main.py
 ```
 
@@ -209,9 +209,9 @@ cp -r cc-skills/skills/* ~/.claude/skills/
 # Deploy hooks
 cp cc-hooks/vmem-*.sh ~/.vmem/
 
-# Deploy server (tk-lenovo)
-scp vector-storage/vector-api/main.py tk-lenovo:/home/tk-lenovo/Docker-Container/vector-storage/vector-api/
-ssh tk-lenovo "cd /home/tk-lenovo/Docker-Container/vector-storage && docker compose build && docker compose up -d"
+# Deploy server
+scp vector-storage/vector-api/main.py <SERVER_HOST>:/path/to/vector-api/
+ssh <SERVER_HOST> "cd /path/to/vector-storage && docker compose build && docker compose up -d"
 ```
 
 ---
@@ -221,9 +221,9 @@ ssh tk-lenovo "cd /home/tk-lenovo/Docker-Container/vector-storage && docker comp
 Add to `~/.ssh/config`:
 
 ```
-Host tk-lenovo
+Host server-host
     HostName <YOUR_SERVER_IP>
-    User tk-lenovo
+    User <YOUR_REMOTE_USER>
 ```
 
 ---
@@ -240,5 +240,5 @@ Host tk-lenovo
 ### View Server Logs
 
 ```bash
-ssh tk-lenovo "cd /home/tk-lenovo/Docker-Container/vector-storage && docker compose logs -f vector-api"
+ssh <SERVER_HOST> "cd /path/to/vector-storage && docker compose logs -f vector-api"
 ```

@@ -2,7 +2,7 @@
 
 **Status: 🔄 IN PROGRESS** (2025-12-29)
 
-Step-by-step guide to install and configure the vmem CLI tool on MacBook.
+Step-by-step guide to install and configure the vmem CLI tool.
 
 ## Bug Fixes Applied
 
@@ -25,7 +25,7 @@ Step-by-step guide to install and configure the vmem CLI tool on MacBook.
 
 - [ ] Python 3.x installed (check: `python3 --version`)
 - [ ] `requests` package installed (check: `pip show requests`)
-- [ ] Vector Storage API running on tk-lenovo
+- [ ] Vector Storage API running on server
 - [ ] Environment variables set: `VECTOR_URL`, `AUTH_TOKEN`
 
 ---
