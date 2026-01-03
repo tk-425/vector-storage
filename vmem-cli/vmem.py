@@ -1214,7 +1214,7 @@ For vmem commands and auto-save/retrieval behavior, read: `.vmem.md`
         except requests.exceptions.ConnectionError:
             print(f"✗ Cannot reach Vector API")
             print(f"  URL: {self.base_url}")
-            print(f"  Check if tk-lenovo is running and ngrok tunnel is active")
+            print(f"  Check if the vector server is running and the ngrok tunnel is active")
             sys.exit(1)
         except requests.exceptions.Timeout:
             print(f"✗ Request timed out")

@@ -23,7 +23,7 @@ vmem save "API uses JWT authentication" --force
 vmem save "API uses JWT authentication" -f
 
 # Save to global collection
-vmem save "Docker runs on tk-lenovo" --global
+vmem save "Docker runs on the remote server" --global
 
 # Save with metadata
 vmem save "Password reset via email" --tags auth,security --importance high --type note
@@ -339,7 +339,7 @@ vmem retrieve compact --global
 ## Architecture
 
 ```
-MacBook                          tk-lenovo
+Local Workstation                  Remote Server
 ┌──────────────────┐             ┌──────────────────┐
 │ AI Agent         │             │ Vector API       │
 │ (Claude Code)    │             │ (FastAPI)        │

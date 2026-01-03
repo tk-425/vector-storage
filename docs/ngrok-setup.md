@@ -1,10 +1,10 @@
-# Ngrok Setup Guide for tk-lenovo
+# Ngrok Setup Guide
 
-This document covers the ngrok configuration for exposing local services (n8n and ChromaDB) to the internet on the tk-lenovo server.
+This document covers the ngrok configuration for exposing local services (n8n and ChromaDB) to the internet on the server.
 
 ## Overview
 
-Ngrok creates secure tunnels from public URLs to locally running services. On tk-lenovo, we use ngrok to expose:
+Ngrok creates secure tunnels from public URLs to locally running services. On your server, you can use ngrok to expose:
 
 - **n8n** (workflow automation) on port 5678
 - **ChromaDB** (vector database) on port 8000
@@ -13,7 +13,7 @@ Ngrok creates secure tunnels from public URLs to locally running services. On tk
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                        tk-lenovo Host                           │
+│                           Host                          │
 │                                                                 │
 │   ┌─────────────┐                                               │
 │   │   ngrok     │ ◄── Runs on HOST, not in Docker               │

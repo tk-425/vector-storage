@@ -6,10 +6,10 @@ A standalone vector storage API using ChromaDB and Ollama for embeddings.
 
 ```bash
 # 1. Copy to tk-lenovo
-scp -r chroma-db tk-lenovo@192.168.1.154:~/
+scp -r chroma-db tk-lenovo@<SERVER_IP>:~/
 
 # 2. SSH to tk-lenovo
-ssh tk-lenovo@192.168.1.154
+ssh tk-lenovo@<SERVER_IP>
 
 # 3. Start services
 cd ~/chroma-db
@@ -69,7 +69,7 @@ curl -X POST "http://localhost:8080/query/project" \
 
 ## External Access (via ngrok)
 
-The ngrok URL `https://idioplasmic-unaesthetically-brandon.ngrok-free.dev` should forward to port 8080.
+The ngrok URL `https://your-ngrok-url.ngrok-free.dev` should forward to port 8080.
 
 Update ngrok config to point to 8080:
 
@@ -83,7 +83,7 @@ tunnels:
 Then test externally:
 
 ```bash
-export VECTOR_URL="https://idioplasmic-unaesthetically-brandon.ngrok-free.dev"
+export VECTOR_URL="https://your-ngrok-url.ngrok-free.dev"
 curl -X POST "$VECTOR_URL/write/global" \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json" \
@@ -99,5 +99,5 @@ Environment variables in `.env`:
 
 Environment variables in `docker-compose.yml`:
 
-- `OLLAMA_URL` - Ollama endpoint (default: `http://192.168.1.154:11434`)
+- `OLLAMA_URL` - Ollama endpoint (default: `http://host.docker.internal:11434`)
 - `CHROMA_URL` - ChromaDB endpoint (default: `http://chroma:8000`)

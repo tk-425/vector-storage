@@ -142,7 +142,7 @@ jsonwebtoken. Want me to show the token generation code too?"
 | **Search**   | Semantic similarity         | Exact symbol match        |
 | **Speed**    | ~300ms (network)            | <100ms (local)            |
 | **Best for** | "Why/What/How" questions    | "Where" questions         |
-| **Offline**  | No (needs tk-lenovo)        | Yes (fully local)         |
+| **Offline**  | No (needs server access)    | Yes (fully local)         |
 
 ## Prerequisites
 
