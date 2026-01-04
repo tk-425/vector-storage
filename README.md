@@ -2,6 +2,8 @@
 
 A persistent vector memory system for AI agents. Saves and retrieves context across sessions using ChromaDB + Ollama embeddings.
 
+> **📖 User Guide:** See [Instruction.md](Instruction.md) for the complete manual and setup guide.
+
 ## Architecture
 
 ```
@@ -51,6 +53,14 @@ vmem status
 
 ## Commands Reference
 
+### Project Initialization
+
+| Command        | Purpose                     |
+| -------------- | --------------------------- |
+| `vmem init`    | Initialize vmem in project  |
+| `vmem init on` | Init with auto-save + hooks |
+| `vmem uninit`  | Complete project teardown   |
+
 ### Core Commands
 
 | Command                      | Purpose                           |
@@ -70,9 +80,6 @@ vmem status
 | `vmem status --json` | Status as JSON (for scripts) |
 | `vmem toggle on`     | Enable project auto-save     |
 | `vmem toggle off`    | Disable project auto-save    |
-| `vmem init`          | Initialize vmem in project   |
-| `vmem init on`       | Init with auto-save + hooks  |
-| `vmem uninit`        | Complete project teardown    |
 
 ### Maintenance
 
@@ -101,18 +108,12 @@ vmem status
 
 ## Configuration Files
 
-| File                 | Location     | Purpose                    |
-| -------------------- | ------------ | -------------------------- |
-| `.vmem.yml`          | Project root | Per-project auto-save mode |
-| `.vmem.md`           | Project root | AI agent instructions      |
-| `~/.vmem/config.yml` | Home         | Global auto-save mode      |
-| `~/.vmem/vmem-*.sh`  | Home         | Claude Code hooks          |
+| File                 | Location | Purpose               |
+| -------------------- | -------- | --------------------- |
+| `~/.vmem/config.yml` | Home     | Global auto-save mode |
+| `~/.vmem/vmem-*.sh`  | Home     | Claude Code hooks     |
 
-### .vmem.yml
-
-```yaml
-auto_save: on # on | off | prompt
-```
+> **Hooks Documentation:** See [cc-hooks/README.md](cc-hooks/README.md).
 
 ---
 
@@ -128,15 +129,11 @@ Skills are stored in `~/.claude/skills/vmem/SKILL.md`. Claude Code reads this au
 cp -r cc-skills/skills/* ~/.claude/skills/
 ```
 
+> **Skill Documentation:** See [cc-skills/README.md](cc-skills/README.md).
+
 ### Gemini / Codex / Others
 
-Add to `AGENTS.md`, `GEMINI.md`, or `CLAUDE.md`:
-
-```markdown
-## Vector Memory
-
-For vmem commands and auto-save/retrieval behavior, read: `.vmem.md`
-```
+Run `vmem init` to automatically configure `AGENTS.md`, `GEMINI.md`, or `CLAUDE.md`.
 
 ---
 
@@ -158,6 +155,8 @@ For vmem commands and auto-save/retrieval behavior, read: `.vmem.md`
 └── data/
     └── chromadb/
 ```
+
+> **Detailed Server Docs:** See [vector-storage/README.md](vector-storage/README.md).
 
 ### Start Server
 
@@ -181,8 +180,6 @@ export VECTOR_AUTH_TOKEN="your-token"
 
 ```
 vector-storage/
-├── .vmem.md              # AI agent instructions (project)
-├── .vmem.yml             # Auto-save config (project)
 ├── AGENTS.md             # Universal agent reference
 ├── cc-hooks/             # Claude Code hook scripts
 │   ├── vmem-pre-query.sh

@@ -26,6 +26,8 @@ graph LR
     API -- local --> Embed
 ```
 
+> **Hooks Documentation:** See [cc-hooks/README.md](cc-hooks/README.md) for details on automation scripts.
+
 ---
 
 ## 🚀 Server Setup
@@ -43,6 +45,8 @@ Clone the repository to your server and navigate to the vector-storage directory
 ```bash
 cd /path/to/vector-storage
 ```
+
+> **Detailed Server Docs:** See [vector-storage/README.md](vector-storage/README.md) for advanced configuration.
 
 ### 3. Start the Services
 
@@ -104,24 +108,62 @@ To enable Claude Code to use vector memory automatically, install the skills:
 cp -r cc-skills/skills/* ~/.claude/skills/
 ```
 
+> **Skill Documentation:** See [cc-skills/README.md](cc-skills/README.md).
+
 ---
 
 ## 🛠️ Usage Guide
 
+### Project Initialization
+
+| Command        | Purpose                     |
+| -------------- | --------------------------- |
+| `vmem init`    | Initialize vmem in project  |
+| `vmem init on` | Init with auto-save + hooks |
+| `vmem uninit`  | Complete project teardown   |
+
 ### Core Commands
 
-| Command             | Action                                     |
-| :------------------ | :----------------------------------------- |
-| `vmem init`         | Initialize vmem in the current project.    |
-| `vmem save "text"`  | Save a technical insight or decision.      |
-| `vmem query "term"` | Search memory for relevant past context.   |
-| `vmem status`       | Check connection and current project mode. |
+| Command                      | Purpose                           |
+| ---------------------------- | --------------------------------- |
+| `vmem save "text"`           | Save to project (respects toggle) |
+| `vmem save "text" --force`   | Force save (always works)         |
+| `vmem save "text" --global`  | Save to global collection         |
+| `vmem query "term"`          | Search project collection         |
+| `vmem query "term" --global` | Search global collection          |
+| `vmem search "term"`         | Search project + global           |
 
-### Advanced Features
+### Configuration
 
-- **Compacts**: Save a "snapshot" of a major milestone using `vmem compact "description"`.
-- **Global Search**: Use `vmem search "term"` to look across both project and global memory.
-- **Maintenance**: Prune old data with `vmem prune --older-than 30`.
+| Command              | Purpose                      |
+| -------------------- | ---------------------------- |
+| `vmem status`        | Check auto-save mode         |
+| `vmem status --json` | Status as JSON (for scripts) |
+| `vmem toggle on`     | Enable project auto-save     |
+| `vmem toggle off`    | Disable project auto-save    |
+
+### Maintenance
+
+| Command                              | Purpose                           |
+| ------------------------------------ | --------------------------------- |
+| `vmem ping`                          | Check server connectivity         |
+| `vmem history`                       | Show recent saves                 |
+| `vmem history --global`              | Show global history               |
+| `vmem prune --duplicates`            | Remove duplicate entries          |
+| `vmem prune --older-than 30`         | Remove entries older than 30 days |
+| `vmem prune compact --all`           | Remove all compacts               |
+| `vmem prune compact --all --dry-run` | Preview compact removal           |
+| `vmem prune compact --older-than`    | Remove old compacts               |
+| `vmem prune --dry-run`               | Preview without deleting          |
+
+### Compacts (Project Snapshots)
+
+| Command                       | Purpose                    |
+| ----------------------------- | -------------------------- |
+| `vmem compact "text"`         | Save snapshot (max 5 kept) |
+| `vmem retrieve compact`       | Get most recent compact    |
+| `vmem retrieve compact 3`     | Get 3rd compact (1=newest) |
+| `vmem retrieve compact --all` | List all compacts          |
 
 ---
 
