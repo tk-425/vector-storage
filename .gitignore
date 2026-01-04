@@ -1,8 +1,19 @@
 .code-graph
 .claude
 .agent
+
+# vmem
 .vmem.md
 .vmem.yml
+
+# Agent tools
+.agent/
+.claude/
+.codex/
+.code-graph/
+
+# Agent markdown files
 AGENTS.md
 CLAUDE.md
 GEMINI.md
+QWEN.md
