@@ -1,5 +1,5 @@
 #!/bin/bash
-BACKUP_DIR="/home/tk-lenovo/Backup/vector-storage"
+BACKUP_DIR="/path/to/backup/vector-storage"
 mkdir -p $BACKUP_DIR
 
 # Create backup of ChromaDB data

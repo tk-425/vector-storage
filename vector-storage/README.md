@@ -5,11 +5,11 @@ A standalone vector storage API using ChromaDB and Ollama for embeddings.
 ## Quick Start
 
 ```bash
-# 1. Copy to tk-lenovo
-scp -r chroma-db tk-lenovo@<SERVER_IP>:~/
+# 1. Copy to server-user
+scp -r chroma-db server-user@<SERVER_IP>:~/
 
-# 2. SSH to tk-lenovo
-ssh tk-lenovo@<SERVER_IP>
+# 2. SSH to server-user
+ssh server-user@<SERVER_IP>
 
 # 3. Start services
 cd ~/chroma-db
