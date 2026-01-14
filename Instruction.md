@@ -158,12 +158,12 @@ cp -r cc-skills/skills/* ~/.claude/skills/
 
 ### Compacts (Project Snapshots)
 
-| Command                       | Purpose                    |
-| ----------------------------- | -------------------------- |
-| `vmem compact "text"`         | Save snapshot (max 5 kept) |
-| `vmem retrieve compact`       | Get most recent compact    |
-| `vmem retrieve compact 3`     | Get 3rd compact (1=newest) |
-| `vmem retrieve compact --all` | List all compacts          |
+| Command                       | Purpose                     |
+| ----------------------------- | --------------------------- |
+| `vmem compact "text"`         | Save snapshot (max 10 kept) |
+| `vmem retrieve compact`       | Get most recent compact     |
+| `vmem retrieve compact 3`     | Get 3rd compact (1=newest)  |
+| `vmem retrieve compact --all` | List all compacts           |
 
 ---
 
