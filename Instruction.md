@@ -149,18 +149,18 @@ cp -r cc-skills/skills/* ~/.claude/skills/
 | `vmem ping`                          | Check server connectivity         |
 | `vmem history`                       | Show recent saves                 |
 | `vmem history --global`              | Show global history               |
-| `vmem prune --duplicates`            | Remove duplicate entries          |
-| `vmem prune --older-than 30`         | Remove entries older than 30 days |
-| `vmem prune compact --all`           | Remove all compacts               |
-| `vmem prune compact --all --dry-run` | Preview compact removal           |
-| `vmem prune compact --older-than`    | Remove old compacts               |
-| `vmem prune --dry-run`               | Preview without deleting          |
+| `vmem delete 1`                      | Delete memory by history index    |
+| `vmem delete compact 1`              | Delete compact by index           |
+| `vmem delete --duplicates`           | Remove duplicate entries          |
+| `vmem delete --days 30`              | Remove entries older than 30 days |
+| `vmem delete compact --older-than N` | Remove old compacts               |
+| `vmem delete --dry-run`              | Preview without deleting          |
 
 ### Compacts (Project Snapshots)
 
 | Command                       | Purpose                    |
 | ----------------------------- | -------------------------- |
-| `vmem compact "text"`         | Save snapshot (max 5 kept) |
+| `vmem save compact "text"`    | Save snapshot (max 5 kept) |
 | `vmem retrieve compact`       | Get most recent compact    |
 | `vmem retrieve compact 3`     | Get 3rd compact (1=newest) |
 | `vmem retrieve compact --all` | List all compacts          |

@@ -1,7 +1,3 @@
-.code-graph
-.claude
-.agent
-
 # vmem
 .vmem.md
 .vmem.yml
@@ -17,3 +13,10 @@ AGENTS.md
 CLAUDE.md
 GEMINI.md
 QWEN.md
+
+# Etc.
+
+# AI Agents
+.rulez/
+.gemini/
+.qwen/

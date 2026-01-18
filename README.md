@@ -74,35 +74,43 @@ vmem status
 
 ### Configuration
 
-| Command              | Purpose                      |
-| -------------------- | ---------------------------- |
-| `vmem status`        | Check auto-save mode         |
-| `vmem status --json` | Status as JSON (for scripts) |
-| `vmem toggle on`     | Enable project auto-save     |
-| `vmem toggle off`    | Disable project auto-save    |
+| Command             | Purpose                    |
+| :------------------ | :------------------------- |
+| `vmem status`       | Check auto-save mode       |
+| `vmem toggle on`    | Enable project auto-save   |
+| `vmem toggle off`   | Disable project auto-save  |
+| `vmem hooks status` | Check hooks status         |
+| `vmem hooks on`     | Enable hooks (Claude Code) |
+| `vmem hooks off`    | Disable hooks              |
+
+**Modes:**
+| Mode | Description |
+| :--- | :--- |
+| `off` | Auto-save disabled |
+| `on` | Auto-save enabled |
 
 ### Maintenance
 
-| Command                              | Purpose                           |
-| ------------------------------------ | --------------------------------- |
-| `vmem ping`                          | Check server connectivity         |
-| `vmem history`                       | Show recent saves                 |
-| `vmem history --global`              | Show global history               |
-| `vmem prune --duplicates`            | Remove duplicate entries          |
-| `vmem prune --older-than 30`         | Remove entries older than 30 days |
-| `vmem prune compact --all`           | Remove all compacts               |
-| `vmem prune compact --all --dry-run` | Preview compact removal           |
-| `vmem prune compact --older-than`    | Remove old compacts               |
-| `vmem prune --dry-run`               | Preview without deleting          |
+| Command                    | Purpose                           |
+| -------------------------- | --------------------------------- |
+| `vmem ping`                | Check server connectivity         |
+| `vmem history`             | Show recent saves                 |
+| `vmem history --global`    | Show global history               |
+| `vmem delete --duplicates` | Remove duplicate entries          |
+| `vmem delete --days 30`    | Remove entries older than 30 days |
+| `vmem delete --dry-run`    | Preview without deleting          |
+| `vmem delete 1`            | Delete memory by index            |
+| `vmem upgrade-docs`        | Refresh documentation             |
 
 ### Compacts (Project Snapshots)
 
-| Command                       | Purpose                    |
-| ----------------------------- | -------------------------- |
-| `vmem compact "text"`         | Save snapshot (max 5 kept) |
-| `vmem retrieve compact`       | Get most recent compact    |
-| `vmem retrieve compact 3`     | Get 3rd compact (1=newest) |
-| `vmem retrieve compact --all` | List all compacts          |
+| Command                       | Purpose                     |
+| ----------------------------- | --------------------------- |
+| `vmem compact "text"`         | Save snapshot (max 10 kept) |
+| `vmem retrieve compact`       | Get most recent compact     |
+| `vmem retrieve compact 3`     | Get 3rd compact (1=newest)  |
+| `vmem delete compact 3`       | Delete 3rd compact          |
+| `vmem retrieve compact --all` | List all compacts           |
 
 ---
 
