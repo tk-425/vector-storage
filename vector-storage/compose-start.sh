@@ -10,6 +10,6 @@ echo "Starting existing vector-storage containers..."
 docker compose -f ${SCRIPT_DIR}/docker-compose.yml start
 
 echo "Containers started."
-echo "Starting ngrok (HTTPS → vector-api on port 8080)..."
+# echo "Starting ngrok (HTTPS → vector-api on port 8080)..."
 
-ngrok start --config ~/.config/ngrok/ngrok-chroma.yml chroma
+# ngrok start --config ~/.config/ngrok/ngrok-chroma.yml chroma

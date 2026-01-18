@@ -1,4 +1,4 @@
-# vmem - Vector Memory (v.1.1.3)
+# vmem - Vector Memory (v.1.1.4)
 
 ## AUTO-RETRIEVAL (Before work)
 When user asks about implementation, debugging, or "how did we do X":

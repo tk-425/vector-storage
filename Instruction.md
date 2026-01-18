@@ -116,11 +116,12 @@ cp -r cc-skills/skills/* ~/.claude/skills/
 
 ### Project Initialization
 
-| Command        | Purpose                     |
-| -------------- | --------------------------- |
-| `vmem init`    | Initialize vmem in project  |
-| `vmem init on` | Init with auto-save + hooks |
-| `vmem uninit`  | Complete project teardown   |
+| Command          | Purpose                              |
+| ---------------- | ------------------------------------ |
+| `vmem init`      | Initialize vmem in project           |
+| `vmem init on`   | Init with auto-save + hooks          |
+| `vmem add-agent` | Add agent config to existing project |
+| `vmem uninit`    | Complete project teardown            |
 
 ### Core Commands
 
@@ -141,6 +142,9 @@ cp -r cc-skills/skills/* ~/.claude/skills/
 | `vmem status --json` | Status as JSON (for scripts) |
 | `vmem toggle on`     | Enable project auto-save     |
 | `vmem toggle off`    | Disable project auto-save    |
+| `vmem hooks status`  | Check hooks status           |
+| `vmem hooks on`      | Enable hooks (Claude Code)   |
+| `vmem hooks off`     | Disable hooks                |
 
 ### Maintenance
 
@@ -155,15 +159,16 @@ cp -r cc-skills/skills/* ~/.claude/skills/
 | `vmem delete --days 30`              | Remove entries older than 30 days |
 | `vmem delete compact --older-than N` | Remove old compacts               |
 | `vmem delete --dry-run`              | Preview without deleting          |
+| `vmem upgrade-docs`                  | Refresh docs to match CLI version |
 
 ### Compacts (Project Snapshots)
 
-| Command                       | Purpose                    |
-| ----------------------------- | -------------------------- |
-| `vmem save compact "text"`    | Save snapshot (max 5 kept) |
-| `vmem retrieve compact`       | Get most recent compact    |
-| `vmem retrieve compact 3`     | Get 3rd compact (1=newest) |
-| `vmem retrieve compact --all` | List all compacts          |
+| Command                       | Purpose                     |
+| ----------------------------- | --------------------------- |
+| `vmem compact "text"`         | Save snapshot (max 10 kept) |
+| `vmem retrieve compact`       | Get most recent compact     |
+| `vmem retrieve compact 3`     | Get 3rd compact (1=newest)  |
+| `vmem retrieve compact --all` | List all compacts           |
 
 ---
 

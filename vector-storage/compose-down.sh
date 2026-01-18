@@ -8,4 +8,4 @@ echo "Stopping and removing vector-storage containers..."
 docker compose -f ${SCRIPT_DIR}/docker-compose.yml down
 
 echo "Containers removed. Volumes preserved."
-echo "If ngrok is running, stop it with CTRL+C."
+# echo "If ngrok is running, stop it with CTRL+C."

@@ -8,4 +8,4 @@ echo "Stopping vector-storage containers..."
 docker compose -f ${SCRIPT_DIR}/docker-compose.yml stop
 
 echo "All vector-storage containers stopped."
-echo "If ngrok is still running in another terminal, stop it with CTRL+C."
+# echo "If ngrok is still running in another terminal, stop it with CTRL+C."

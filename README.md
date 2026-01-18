@@ -12,8 +12,8 @@ Local (Client)                      Remote (Server)
 │ AI Agent           │              │ Docker Compose     │
 │ (Claude/Gemini/...)│              │ ┌────────────────┐ │
 │        ↓           │   HTTPS      │ │ Vector API     │ │
-│ vmem CLI           │ ──────────→  │ │ (FastAPI)      │ │
-│ (~/.bin/vmem)      │   ngrok      │ └────────────────┘ │
+│ vmem CLI           │ ──────────→  │ │ (Port 8080)    │ │
+│ (~/.bin/vmem)      │ Tailscale IP │ └────────────────┘ │
 └────────────────────┘              │        ↓           │
                                     │ ┌────────────────┐ │
                                     │ │ ChromaDB       │ │
@@ -151,7 +151,7 @@ Run `vmem init` to automatically configure `AGENTS.md`, `GEMINI.md`, or `CLAUDE.
 
 - Docker + Docker Compose
 - Ollama with nomic-embed-text model
-- ngrok for HTTPS tunnel
+- Tailscale (installed on both client and server)
 
 ### Location
 
@@ -173,12 +173,12 @@ cd /path/to/vector-storage
 docker compose up -d
 ```
 
-### Environment Variables (Remote)
+### Environment Variables (Client)
 
 Add to `~/.zshrc`:
 
 ```bash
-export VECTOR_BASE_URL="https://your-ngrok-url.ngrok-free.dev"
+export VECTOR_BASE_URL="http://<tailscale-ip>:8080"
 export VECTOR_AUTH_TOKEN="your-token"
 ```
 
@@ -235,12 +235,12 @@ Host server-host
 
 ## Troubleshooting
 
-| Issue                     | Solution                                       |
-| ------------------------- | ---------------------------------------------- |
-| `Cannot reach Vector API` | Check ngrok tunnel and server status           |
-| `Auto-save is OFF`        | Use `vmem toggle on` or `--force` flag         |
-| YAML boolean error        | Fixed in latest vmem.py                        |
-| Hooks not working         | Restart Claude Code, verify `~/.vmem/` scripts |
+| Issue                     | Solution                                          |
+| ------------------------- | ------------------------------------------------- |
+| `Cannot reach Vector API` | Check Tailscale connection and server port (8080) |
+| `Auto-save is OFF`        | Use `vmem toggle on` or `--force` flag            |
+| YAML boolean error        | Fixed in latest vmem.py                           |
+| Hooks not working         | Restart Claude Code, verify `~/.vmem/` scripts    |
 
 ### View Server Logs
 

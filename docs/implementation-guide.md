@@ -2,26 +2,24 @@
 
 Guide for setting up the vector storage server.
 
-> **Note:** The current implementation uses a FastAPI service at `vector-storage/vector-api/main.py`. Earlier versions used n8n as a gateway — those references are obsolete.
-
 ---
 
 ## Architecture
 
 ```
-Client                               Server
-┌─────────────────┐                  ┌─────────────────────────┐
-│ vmem CLI        │                  │ Docker Compose          │
-│                 │    HTTPS/ngrok   │ ┌─────────────────────┐ │
-│ vmem save ...   │ ───────────────→ │ │ vector-api (FastAPI)│ │
-│ vmem query ...  │                  │ │      :8080          │ │
-└─────────────────┘                  │ └──────────┬──────────┘ │
-                                     │            │            │
-                                     │ ┌──────────▼──────────┐ │
-                                     │ │ ChromaDB   :8000    │ │
-                                     │ │ + Ollama embeddings │ │
-                                     │ └─────────────────────┘ │
-                                     └─────────────────────────┘
+Local (Client)                      Remote (Server)
+┌────────────────────┐              ┌────────────────────┐
+│ AI Agent           │              │ Docker Compose     │
+│ (Claude/Gemini/...)│              │ ┌────────────────┐ │
+│        ↓           │   HTTPS      │ │ Vector API     │ │
+│ vmem CLI           │ ──────────→  │ │ (Port 8080)    │ │
+│ (~/.bin/vmem)      │ Tailscale IP │ └────────────────┘ │
+└────────────────────┘              │        ↓           │
+                                    │ ┌────────────────┐ │
+                                    │ │ ChromaDB       │ │
+                                    │ │ + Ollama       │ │
+                                    │ └────────────────┘ │
+                                    └────────────────────┘
 ```
 
 ---
@@ -32,7 +30,7 @@ Client                               Server
 
 - Docker + Docker Compose
 - Ollama with `nomic-embed-text` model
-- ngrok account (free tier works)
+- Tailscale (recommended) or ngrok account
 
 ### Directory Structure
 
@@ -81,13 +79,22 @@ cd /path/to/vector-storage
 docker compose up -d
 ```
 
-### ngrok Tunnel
+### Network Access (Tailscale)
+
+Ensure Tailscale is installed and running on both client and server.
+See [tailscale-setup.md](tailscale-setup.md) for details.
+
+Get your server's Tailscale IP (e.g., `100.x.y.z`) to use in client configuration.
+
+### Network Access (Alternative: ngrok)
+
+If you cannot use Tailscale, use ngrok to expose port 8080:
 
 ```bash
 ngrok http 8080
 ```
 
-Copy the HTTPS URL for client configuration.
+Copy the HTTPS URL for client configuration. See [ngrok-setup.md](ngrok-setup.md) for full details.
 
 ---
 
@@ -176,7 +183,7 @@ docker compose logs -f vector-api
 On your local machine, set environment variables:
 
 ```bash
-export VECTOR_BASE_URL="https://your-ngrok-url.ngrok-free.dev"
+export VECTOR_BASE_URL="http://<tailscale-ip>:8080"
 export VECTOR_AUTH_TOKEN="your-token"
 ```
 
