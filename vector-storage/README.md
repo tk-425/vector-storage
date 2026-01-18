@@ -5,14 +5,15 @@ A standalone vector storage API using ChromaDB and Ollama for embeddings.
 ## Quick Start
 
 ```bash
-# 1. Copy to server-user
-scp -r chroma-db server-user@<SERVER_IP>:~/
+# 1. Copy to server
+# Note: Copy the contents of 'vector-storage' directory to your server
+scp -r vector-storage server-user@<SERVER_IP>:<SERVER_CHROMA_PATH>/
 
 # 2. SSH to server-user
 ssh server-user@<SERVER_IP>
 
 # 3. Start services
-cd ~/chroma-db
+cd <SERVER_CHROMA_PATH>
 docker compose up -d --build
 
 # 4. Test health

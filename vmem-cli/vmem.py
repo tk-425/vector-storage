@@ -77,7 +77,7 @@ class VectorMemory:
                 pass
 
         # Project config
-        project_config_path = Path.cwd() / ".vmem.yml"
+        project_config_path = Path.cwd() / ".vmem" / "config.yml"
         if project_config_path.exists() and yaml:
             try:
                 with open(project_config_path) as f:
@@ -123,6 +123,13 @@ class VectorMemory:
             return "off"
         return mode if mode else "off"
 
+    def is_initialized(self) -> bool:
+        """Check if project is initialized (local config exists)"""
+        cwd = Path.cwd()
+        return (cwd / ".vmem" / "config.yml").exists() or (
+            cwd / ".vmem" / "vmem.md"
+        ).exists()
+
     def can_auto_save(self) -> bool:
         """Check if auto-save is allowed based on current mode"""
         mode = self.get_effective_mode()
@@ -150,6 +157,10 @@ class VectorMemory:
         Args:
             force: If True, bypass auto-save check (for manual saves)
         """
+        if scope == "project" and not self.is_initialized():
+            print("⚠️  Project not initialized. Run 'vmem init' first.", file=sys.stderr)
+            sys.exit(1)
+
         # Check auto-save permission (unless forced)
         if not force and not self.can_auto_save():
             mode = self.get_effective_mode()
@@ -195,6 +206,10 @@ class VectorMemory:
 
     def save_compact(self, text: str, scope: str = "project"):
         """Save a compact (project snapshot). Max 10 kept, oldest auto-deleted."""
+        if scope == "project" and not self.is_initialized():
+            print("⚠️  Project not initialized. Run 'vmem init' first.", file=sys.stderr)
+            sys.exit(1)
+
         # Get existing compacts
         compacts = self._get_compacts(scope)
 
@@ -243,6 +258,10 @@ class VectorMemory:
         self, index: int = 1, scope: str = "project", show_all: bool = False
     ):
         """Retrieve compact(s). Index 1=newest, 10=oldest."""
+        if scope == "project" and not self.is_initialized():
+            print("⚠️  Project not initialized. Run 'vmem init' first.", file=sys.stderr)
+            sys.exit(1)
+
         compacts = self._get_compacts(scope)
 
         if not compacts:
@@ -339,27 +358,27 @@ class VectorMemory:
         except requests.exceptions.RequestException as e:
             print(f"✗ Error deleting compact: {e}", file=sys.stderr)
 
-    def prune_compact(
+    def delete_compact_bulk(
         self,
         scope: str = "project",
         older_than_days: int = None,
-        prune_all: bool = False,
+        delete_all: bool = False,
         dry_run: bool = False,
         verbose: bool = False,
     ):
-        """Prune compacts based on criteria."""
+        """Delete compacts based on criteria."""
         from datetime import datetime, timedelta
 
         compacts = self._get_compacts(scope)
 
         if not compacts:
-            print(f"No compacts found")
+            print("No compacts found")
             return
 
         to_delete = []
 
         # Determine which compacts to delete
-        if prune_all:
+        if delete_all:
             to_delete = compacts
         elif older_than_days:
             cutoff = datetime.utcnow() - timedelta(days=older_than_days)
@@ -376,7 +395,7 @@ class VectorMemory:
                     except (ValueError, TypeError):
                         pass
         else:
-            print("Specify --all or --older-than to prune compacts")
+            print("Specify --all or --older-than to delete compacts")
             return
 
         if not to_delete:
@@ -390,9 +409,9 @@ class VectorMemory:
         else:
             collection = "global"
 
-        print(f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
         print(f"📦 Compacts to delete from {collection}:")
-        print(f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 
         for i, compact in enumerate(to_delete, 1):
             meta = compact.get("metadata", {})
@@ -440,6 +459,10 @@ class VectorMemory:
         self, index: int, scope: str = "project", dry_run: bool = False
     ):
         """Delete a specific compact by index (1=newest)."""
+        if scope == "project" and not self.is_initialized():
+            print("⚠️  Project not initialized. Run 'vmem init' first.", file=sys.stderr)
+            sys.exit(1)
+
         compacts = self._get_compacts(scope)
 
         if not compacts:
@@ -468,9 +491,9 @@ class VectorMemory:
             "..." if len(compact.get("text", "")) > 60 else ""
         )
 
-        print(f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-        print(f"📦 Compact to delete:")
-        print(f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        print("📦 Compact to delete:")
+        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
         print(f"[{index}] {created} | {text}")
         print(f"ID: {compact.get('id', 'Unknown')}")
 
@@ -499,6 +522,10 @@ class VectorMemory:
         output_format: str = "text",
     ) -> List[Dict]:
         """Query vector storage"""
+        if scope == "project" and not self.is_initialized():
+            print("⚠️  Project not initialized. Run 'vmem init' first.", file=sys.stderr)
+            sys.exit(1)
+
         if scope == "project":
             project_id = self.get_project_id()
             payload = {"project_id": project_id, "query": query, "top_k": top_k}
@@ -537,9 +564,9 @@ class VectorMemory:
             print(f"No relevant results found in {collection}")
             return
 
-        print(f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
         print(f"📚 Results from {collection}:")
-        print(f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 
         for i, match in enumerate(matches, 1):
             similarity_pct = match.get("similarity", 0) * 100
@@ -556,6 +583,20 @@ class VectorMemory:
 
     def search_all(self, query: str, top_k: int = 3):
         """Search both project and global collections"""
+        # Note: We don't strictly enforce init for global search, but since this command
+        # searches BOTH, and project search requires project ID...
+        # Let's enforce init if we are in a project context, or warn?
+        # Simpler: If not initialized, maybe just warn or skip project search?
+        # But per user request "check status of project... before any other command"
+        # Let's enforce it to be safe.
+        if not self.is_initialized():
+            print(
+                "⚠️  Project not initialized. To search global only, use 'vmem query --global'",
+                file=sys.stderr,
+            )
+            print("   Run 'vmem init' to enable project search.", file=sys.stderr)
+            sys.exit(1)
+
         print("Searching project collection...")
         project_matches = self.query(
             query, scope="project", top_k=top_k, output_format="json"
@@ -573,6 +614,7 @@ class VectorMemory:
 
     def status(self, json_output: bool = False):
         """Show current status"""
+        is_init = self.is_initialized()
         effective_mode = self.get_effective_mode()
         project_mode = self.config["auto_save"]["project_mode"]
         global_mode = self.config["auto_save"]["global_mode"]
@@ -591,7 +633,7 @@ class VectorMemory:
             return
 
         print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-        print("📊 Vector Memory Status")
+        print(f"📊 Vector Memory Status (v.{__version__})")
         print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
         print(f"Global Auto-save mode: {global_mode}")
 
@@ -602,6 +644,34 @@ class VectorMemory:
 
         print(f"Current project: {self.get_project_id()}")
         print(f"Vector API: {self.base_url}")
+
+        # Local Status
+        if is_init:
+            print("Local Status: ✅ Initialized")
+        else:
+            print("Local Status: ❌ Not Initialized")
+
+        # Remote Status (Check without creating)
+        try:
+            print("Remote Status: ", end="", flush=True)
+            project_id = self.get_project_id()
+            response = requests.post(
+                f"{self.base_url}/check/project",
+                headers=self.headers,
+                json={"project_id": project_id},
+                timeout=5,
+            )
+            if response.status_code == 200:
+                data = response.json()
+                if data.get("exists"):
+                    count = data.get("count", 0)
+                    print(f"✅ Active ({count} documents)")
+                else:
+                    print("❌ Not found (Clean)")
+            else:
+                print(f"⚠️  Unknown ({response.status_code})")
+        except Exception:
+            print("⚠️  Unreachable")
 
         # Check connectivity
         try:
@@ -614,39 +684,34 @@ class VectorMemory:
         except Exception as e:
             print(f"❌ Unreachable ({e})")
 
-    def toggle(self, mode: str, scope: str = "global"):
+    def toggle(self, mode: str):
         """Toggle auto-save mode"""
-        valid_modes = ["off", "on", "prompt"]
+        valid_modes = ["off", "on"]
         if mode not in valid_modes:
             print(
                 f"Invalid mode: {mode}. Use: {', '.join(valid_modes)}", file=sys.stderr
             )
             sys.exit(1)
 
-        if scope == "global":
-            config_dir = Path.home() / ".vmem"
-            config_dir.mkdir(exist_ok=True)
-            config_path = config_dir / "config.yml"
+        if not self.is_initialized():
+            print(
+                "⚠️  Project not initialized. Run 'vmem init' first.",
+                file=sys.stderr,
+            )
+            sys.exit(1)
 
-            config = {"auto_save": {"mode": mode, "per_project": True}}
+        config_path = Path.cwd() / ".vmem" / "config.yml"
+        # Ensure .vmem directory exists
+        if not config_path.parent.exists():
+            config_path.parent.mkdir(parents=True, exist_ok=True)
 
-            if yaml:
-                with open(config_path, "w") as f:
-                    yaml.dump(config, f)
-            else:
-                with open(config_path, "w") as f:
-                    f.write(f"auto_save:\n  mode: {mode}\n  per_project: true\n")
-
-            print(f"✓ Global auto-save set to: {mode}")
-        else:
-            config_path = Path.cwd() / ".vmem.yml"
-            with open(config_path, "w") as f:
-                f.write(f"auto_save: {mode}\n")
-            print(f"✓ Project auto-save set to: {mode}")
+        with open(config_path, "w") as f:
+            f.write(f"auto_save: {mode}\n")
+        print(f"✓ Project auto-save set to: {mode}")
 
     def _get_vmem_md_content(self) -> str:
         """Get content for .vmem.md"""
-        return """# vmem - Vector Memory
+        return f"""# vmem - Vector Memory (v.{__version__})
 
 ## AUTO-RETRIEVAL (Before work)
 When user asks about implementation, debugging, or "how did we do X":
@@ -683,16 +748,23 @@ After completing implementation tasks:
 | `vmem toggle off` | Disable auto-save |
 | `vmem ping` | Check server connectivity |
 | `vmem history` | Show recent saves |
-| `vmem prune --duplicates` | Remove duplicate entries |
-| `vmem prune --older-than 30` | Remove entries >30 days old |
-| `vmem prune --dry-run` | Preview without deleting |
-| `vmem prune compact --all` | Remove all compacts |
-| `vmem prune compact --all --dry-run` | Preview compact removal |
-| `vmem prune compact --older-than 7` | Remove compacts >7 days old |
+| `vmem delete --duplicates` | Remove duplicate entries |
+| `vmem delete --days 30` | Remove entries >30 days old |
+| `vmem delete --dry-run` | Preview without deleting |
+| `vmem delete compact --all` | Remove all compacts |
+| `vmem delete compact --all --dry-run` | Preview compact removal |
+| `vmem delete compact --older-than 7` | Remove compacts >7 days old |
 | `vmem compact "text"` | Save project snapshot (max 10) |
 | `vmem retrieve compact` | Get recent compact |
 | `vmem retrieve compact --all` | List all compacts |
 | `vmem delete compact 2` | Delete compact at index 2 |
+| `vmem init` | Initialize project |
+| `vmem init on` | Initialize + enable hooks |
+| `vmem upgrade-docs` | Refresh docs to match CLI version |
+| `vmem add-agent` | Add agent configs to existing project |
+| `vmem hooks status` | Check hooks status |
+| `vmem hooks on` | Enable hooks (Claude Code) |
+| `vmem hooks off` | Disable hooks |
 """
 
     def _get_gemini_rules_content(self) -> str:
@@ -799,58 +871,228 @@ The user will **not** run CLI commands directly. They will give natural language
 """
 
     def _update_gitignore(self):
-        """Add vmem and agent files to .gitignore if not already ignored"""
-        cwd = Path.cwd()
-        gitignore_path = cwd / ".gitignore"
+        """Add vmem files to .gitignore if not present"""
+        gitignore_path = Path.cwd() / ".gitignore"
 
-        items_to_ignore = [
-            "# vmem",
-            ".vmem.md",
-            ".vmem.yml",
-            "",
-            "# Agent tools",
-            ".agent/",
-            ".claude/",
-            ".codex/",
-            ".code-graph/",
-            "",
-            "# Agent markdown files",
-            "AGENTS.md",
-            "CLAUDE.md",
-            "GEMINI.md",
-            "QWEN.md",
-        ]
+        # Files to ignore
+        entries = [".vmem/", "# vmem"]
 
-        existing_lines = set()
+        # Check existing content
+        existing = set()
         if gitignore_path.exists():
             with open(gitignore_path, "r") as f:
-                existing_lines = {line.strip() for line in f if line.strip()}
+                existing = {line.strip() for line in f.readlines()}
 
-        # Filter items that are already in gitignore
-        # We skip comments and empty lines for the "already exists" check
-        to_add = []
-        for item in items_to_ignore:
-            if not item or item.startswith("#"):
-                to_add.append(item)
-            elif item not in existing_lines:
-                to_add.append(item)
+        # Add missing
+        to_add = [e for e in entries if e not in existing]
 
-        # If no real items (non-comments/non-empty) to add, just exit
-        real_additions = [i for i in to_add if i and not i.startswith("#")]
-        if not real_additions:
-            # We still might want to add comments if the file is empty or missing,
-            # but usually better to just skip if the core files are already ignored.
-            return
+        if to_add:
+            try:
+                with open(gitignore_path, "a") as f:
+                    if existing and list(existing)[-1] != "":
+                        f.write("\n")
+                    f.write("\n# vmem\n")
+                    for entry in entries:
+                        if entry != "# vmem" and entry not in existing:
+                            f.write(f"{entry}\n")
+                print("✓ Updated .gitignore")
+            except OSError as e:
+                print(f"⚠ Could not update .gitignore: {e}")
 
-        mode = "a" if gitignore_path.exists() else "w"
+    def _prompt_selection(
+        self, options: list[tuple[str, str]], prompt: str
+    ) -> list[str]:
+        """Prompt user to select multiple options from a list"""
+        if not options:
+            return []
+
+        print(f"\n{prompt}")
+        for i, (label, value) in enumerate(options, 1):
+            print(f"  {i}. {label}")
+
         try:
-            with open(gitignore_path, mode) as f:
-                if mode == "a":
-                    f.write("\n\n")
-                f.write("\n".join(to_add) + "\n")
-            print(f"✓ Updated .gitignore")
-        except OSError as e:
-            print(f"⚠ Could not update .gitignore: {e}")
+            choice = input("\nSelect (e.g., 1 or 1,2): ").strip()
+            if not choice:
+                return []
+
+            indices = [
+                int(c.strip())
+                for c in choice.replace(" ", ",").split(",")
+                if c.strip().isdigit()
+            ]
+            selected = []
+            for idx in indices:
+                if 1 <= idx <= len(options):
+                    selected.append(options[idx - 1][1])
+            return selected
+        except (ValueError, EOFError, KeyboardInterrupt):
+            return []
+
+    def configure_integrations(self, enable_hooks: bool = False):
+        """Configure agent config files and rule directories"""
+
+        cwd = Path.cwd()
+
+        # vmem reference to add
+        vmem_reference = """
+
+## Vector Memory
+For vmem commands and auto-save/retrieval behavior, read: `@.vmem/vmem.md`
+"""
+
+        # 1. Select Agent Config Files
+        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        print("📁 Agent Config Files")
+        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+
+        config_options = [
+            ("CLAUDE.md (Claude Code)", "CLAUDE.md"),
+            ("GEMINI.md (Gemini CLI)", "GEMINI.md"),
+            ("QWEN.md (Qwen)", "QWEN.md"),
+            ("AGENTS.md (Universal)", "AGENTS.md"),
+        ]
+
+        selected_configs = self._prompt_selection(
+            config_options, "Which agent config files to create/update?"
+        )
+
+        # Default to AGENTS.md if nothing selected but user didn't abort
+        if not selected_configs:
+            print("No files selected. Skipping config injection.")
+
+        for filename in selected_configs:
+            filepath = cwd / filename
+            is_new = not filepath.exists()
+
+            with open(filepath, "a" if not is_new else "w") as f:
+                if is_new:
+                    f.write(vmem_reference)
+                    print(f"✓ Created {filename}")
+                else:
+                    # Upgrade/Check logic
+                    with open(filepath, "r") as r:
+                        content = r.read()
+
+                    old_ref = "For vmem commands and auto-save/retrieval behavior, read: `.vmem/vmem.md`"
+                    new_ref = "For vmem commands and auto-save/retrieval behavior, read: `@.vmem/vmem.md`"
+
+                    if new_ref in content:
+                        print(f"ℹ️  {filename} already up to date")
+                        continue
+
+                    if old_ref in content:
+                        # Upgrade existing reference
+                        updated_content = content.replace(old_ref, new_ref)
+                        pass  # handled below
+                    else:
+                        # Append new reference
+                        f.write(vmem_reference)
+                        print(f"✓ Updated {filename}")
+                        continue
+
+                    # If we got here, we are upgrading
+                    with open(filepath, "w") as w:
+                        w.write(updated_content)
+                    print(f"✓ Upgraded {filename} (added @ symbol)")
+
+        # 2. Select Rule Directories
+        print("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        print("📂 Rule Directories")
+        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+
+        rule_options = [
+            (".agent/rules (Standard)", ".agent"),
+            (".claude (Claude Code)", ".claude"),
+            (".gemini (Gemini)", ".gemini"),
+            (".qwen (Qwen)", ".qwen"),
+            (".codex (Codex)", ".codex"),
+        ]
+
+        selected_dirs = self._prompt_selection(
+            rule_options, "Which rule directories to configure?"
+        )
+        gemini_rules_content = self._get_gemini_rules_content()
+
+        for dir_name in selected_dirs:
+            rules_dir = cwd / dir_name / "rules"
+
+            # Special case for .agent, it usually has 'rules' inside, but others might need to create it
+            # The prompt options just gave the root.
+
+            try:
+                (cwd / dir_name).mkdir(exist_ok=True)
+                rules_dir.mkdir(parents=True, exist_ok=True)
+                rule_path = rules_dir / "vmem.md"
+
+                if rule_path.exists():
+                    print(f"ℹ️  {dir_name}/rules/vmem.md already exists")
+                else:
+                    with open(rule_path, "w") as f:
+                        f.write(gemini_rules_content)
+                    print(f"✓ Created {dir_name}/rules/vmem.md")
+            except OSError as e:
+                print(f"⚠ Could not create in {dir_name}: {e}")
+
+        # Add Claude Code hooks if enable_hooks
+        if enable_hooks:
+            print("  2. .claude/settings.json (for hooks)")
+            if not (Path.cwd() / ".claude").exists():
+                print(
+                    "     (Note: .claude directory not found, hooks might not work locally)"
+                )
+
+        try:
+            input("\nPress Enter to continue (Ctrl+C to cancel)...")
+        except KeyboardInterrupt:
+            print("\nAborted.")
+            sys.exit(0)
+
+    def add_agent(self):
+        """Add agent configuration files and folders"""
+        project_id = self.get_project_id()
+
+        # Check Remote Initialization
+        remote_status = self._check_remote_project(project_id)
+        if not remote_status["exists"]:
+            print(
+                f"⚠️  Error: Project '{project_id}' not found in remote vector database."
+            )
+            print(
+                "   Please run 'vmem init' (or 'vmem init on') to initialize the project first."
+            )
+            sys.exit(1)
+
+        self.configure_integrations(enable_hooks=False)
+        print("\n✓ Agent configuration updated.")
+
+    def _check_remote_project(self, project_id: str) -> dict:
+        """Check if project exists remotely
+
+        Returns:
+            dict: {"exists": bool, "count": int, "error": str/None}
+        """
+        try:
+            response = requests.post(
+                f"{self.base_url}/check/project",
+                headers=self.headers,
+                json={"project_id": project_id},
+                timeout=5,
+            )
+            if response.status_code == 200:
+                data = response.json()
+                return {
+                    "exists": data.get("exists", False),
+                    "count": data.get("count", 0),
+                    "error": None,
+                }
+            else:
+                return {
+                    "exists": False,
+                    "count": 0,
+                    "error": f"Status: {response.status_code}",
+                }
+        except Exception as e:
+            return {"exists": False, "count": 0, "error": str(e)}
 
     def init(self, enable_hooks: bool = False):
         """Initialize vmem in current project
@@ -862,115 +1104,47 @@ The user will **not** run CLI commands directly. They will give natural language
 
         cwd = Path.cwd()
 
-        # Agent config files to look for
-        agent_files = ["CLAUDE.md", "GEMINI.md", "QWEN.md", "AGENTS.md"]
-        found_files = [f for f in agent_files if (cwd / f).exists()]
+        # 1. Configure Integrations (Agent Configs + Rules)
+        self.configure_integrations(enable_hooks=enable_hooks)
 
-        # vmem reference to add
-        vmem_reference = """
-## Vector Memory
-For vmem commands and auto-save/retrieval behavior, read: `.vmem.md`
-"""
+        # Create .vmem directory
+        vmem_dir = cwd / ".vmem"
+        vmem_dir.mkdir(parents=True, exist_ok=True)
 
-        # .vmem.md content
+        # .vmem/vmem.md content
         vmem_md_content = self._get_vmem_md_content()
 
-        # Create .vmem.md
-        vmem_md_path = cwd / ".vmem.md"
+        # Create .vmem/vmem.md (moved logic)
+        vmem_md_path = vmem_dir / "vmem.md"
         if vmem_md_path.exists():
-            print(f"ℹ️  .vmem.md already exists")
+            print("ℹ️  .vmem/vmem.md already exists")
         else:
             with open(vmem_md_path, "w") as f:
                 f.write(vmem_md_content)
-            print(f"✓ Created .vmem.md")
+            print("✓ Created .vmem/vmem.md")
 
-        # Create .vmem.yml if not exists
-        vmem_yml_path = cwd / ".vmem.yml"
-        auto_save_mode = "on" if enable_hooks else "off"
-        if not vmem_yml_path.exists():
-            with open(vmem_yml_path, "w") as f:
-                f.write(f"auto_save: {auto_save_mode}\n")
-            print(f"✓ Created .vmem.yml (auto_save: {auto_save_mode})")
-        elif enable_hooks:
-            # Update existing .vmem.yml to 'on'
-            with open(vmem_yml_path, "w") as f:
-                f.write("auto_save: on\n")
-            print(f"✓ Updated .vmem.yml (auto_save: on)")
-
-        # Create .agent/rules/vmem.md (Gemini rules)
-        agent_rules_dir = cwd / ".agent" / "rules"
-        agent_rules_path = agent_rules_dir / "vmem.md"
-
-        gemini_rules_content = self._get_gemini_rules_content()
+        # Create .agent/rules/vmem.md (for Gemini)
+        agent_rules_path = Path.cwd() / ".agent" / "rules" / "vmem.md"
+        if not agent_rules_path.parent.exists():
+            agent_rules_path.parent.mkdir(parents=True, exist_ok=True)
 
         if not agent_rules_path.exists():
-            try:
-                agent_rules_dir.mkdir(parents=True, exist_ok=True)
-                with open(agent_rules_path, "w") as f:
-                    f.write(gemini_rules_content)
-                print(f"✓ Created .agent/rules/vmem.md")
-            except OSError as e:
-                print(f"⚠ Could not create .agent/rules/vmem.md: {e}")
-        else:
-            print(f"ℹ️  .agent/rules/vmem.md already exists")
+            with open(agent_rules_path, "w") as f:
+                f.write(self._get_gemini_rules_content())
+            print("✓ Created .agent/rules/vmem.md")
 
         # Update .gitignore
         self._update_gitignore()
 
-        # Update agent config files
-        if found_files:
-            for filename in found_files:
-                filepath = cwd / filename
-                with open(filepath, "r") as f:
-                    content = f.read()
-
-                # Check if vmem reference already exists
-                if ".vmem.md" in content:
-                    print(f"ℹ️  {filename} already has vmem reference")
-                else:
-                    with open(filepath, "a") as f:
-                        f.write(vmem_reference)
-                    print(f"✓ Updated {filename}")
-        else:
-            # No agent files exist - prompt user to choose
-            print("\nNo agent config files found. Which one(s) to create?")
-            print("  1. CLAUDE.md  (Claude Code)")
-            print("  2. GEMINI.md  (Gemini CLI)")
-            print("  3. QWEN.md    (Qwen)")
-            print("  4. AGENTS.md  (Universal)")
-
-            try:
-                choice = input("\nSelect (e.g., 1 or 1,2,3): ").strip()
-                file_map = {
-                    "1": "CLAUDE.md",
-                    "2": "GEMINI.md",
-                    "3": "QWEN.md",
-                    "4": "AGENTS.md",
-                }
-
-                # Parse multiple selections
-                selections = [
-                    c.strip() for c in choice.replace(" ", ",").split(",") if c.strip()
-                ]
-                filenames = [file_map[s] for s in selections if s in file_map]
-
-                if not filenames:
-                    filenames = ["AGENTS.md"]
-            except (EOFError, KeyboardInterrupt):
-                filenames = ["AGENTS.md"]
-
-            for filename in filenames:
-                filepath = cwd / filename
-                with open(filepath, "w") as f:
-                    f.write("# Agent Instructions\n" + vmem_reference)
-                print(f"✓ Created {filename}")
-
-        # Add Claude Code hooks if enable_hooks
+        # Enable hooks
         if enable_hooks:
-            claude_dir = cwd / ".claude"
-            claude_dir.mkdir(exist_ok=True)
+            claude_dir = Path.cwd() / ".claude"
+            if not claude_dir.exists():
+                claude_dir.mkdir(exist_ok=True)
+
             settings_path = claude_dir / "settings.json"
 
+            # Default hooks config
             hooks_config = {
                 "hooks": {
                     "UserPromptSubmit": [
@@ -1000,15 +1174,21 @@ For vmem commands and auto-save/retrieval behavior, read: `.vmem.md`
 
             with open(settings_path, "w") as f:
                 json.dump(hooks_config, f, indent=2)
-            print(f"✓ Created .claude/settings.json (hooks enabled)")
+            print("✓ Created .claude/settings.json (hooks enabled)")
 
-        print(f"\n✓ vmem initialized!")
+        print("\n✓ vmem initialized!")
         if not enable_hooks:
-            print(f"  Run 'vmem toggle on' to enable auto-save.")
-            print(f"  Or use 'vmem init on' to enable hooks.")
+            print("  Run 'vmem toggle on' to enable auto-save.")
+            print("  Or use 'vmem init on' to enable hooks.")
 
     def uninit(self):
         """Uninitialize vmem in current project (Complete Teardown)"""
+        if not self.is_initialized():
+            print(
+                "ℹ️  Project not initialized. Nothing to uninitialize.", file=sys.stderr
+            )
+            return
+
         cwd = Path.cwd()
         project_id = self.get_project_id()
 
@@ -1016,10 +1196,29 @@ For vmem commands and auto-save/retrieval behavior, read: `.vmem.md`
         print("⚠️  vmem Uninitialization (Project Teardown)")
         print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
         print(f"Project: {project_id}")
+
+        # Check remote status first
+        # Check remote status first
+        print("Checking remote status...", end="", flush=True)
+        remote_status = self._check_remote_project(project_id)
+        remote_exists = remote_status["exists"]
+        remote_count = remote_status["count"]
+
+        if remote_exists:
+            print(f" Found ({remote_count} items)")
+        elif remote_status["error"]:
+            print(f" Error ({remote_status['error']})")
+        else:
+            print(" Not found (Clean)")
+
         print("\nThis will:")
         print("  1. Remove all local vmem documentation and config files.")
         print("  2. Surgical removal of vmem hooks from .claude/settings.json.")
-        print("  3. PERMANENTLY DELETE all memory for this project from the server.")
+
+        if remote_exists:
+            print(f"  3. PERMANENTLY DELETE {remote_count} items from server memory.")
+        else:
+            print("  3. (Skip) Remote memory delete (not found on server).")
 
         try:
             confirm = (
@@ -1032,29 +1231,44 @@ For vmem commands and auto-save/retrieval behavior, read: `.vmem.md`
             print("\nAborted.")
             return
 
-        # 1. Server-side deletion
-        print("\nDeleting remote project collection...", end="", flush=True)
-        try:
-            response = requests.post(
-                f"{self.base_url}/delete/project",
-                headers=self.headers,
-                json={"project_id": project_id},
-                timeout=30,
-            )
-            if response.status_code == 200:
-                print(" ✓ Deleted")
-            else:
-                print(f" ✗ Failed (Status: {response.status_code})")
-                # Continue anyway to clean up local files
-        except Exception as e:
-            print(f" ✗ Error: {e}")
+        # 1. Server-side deletion (only if exists)
+        if remote_exists:
+            print("\nDeleting remote project collection...", end="", flush=True)
+            try:
+                response = requests.post(
+                    f"{self.base_url}/delete/project",
+                    headers=self.headers,
+                    json={"project_id": project_id},
+                    timeout=30,
+                )
+                if response.status_code == 200:
+                    print(" ✓ Deleted")
+                else:
+                    print(f" ✗ Failed (Status: {response.status_code})")
+                    # Continue anyway to clean up local files
+            except Exception as e:
+                print(f" ✗ Error: {e}")
+        else:
+            print("\nSkipping remote deletion (not found).")
 
         # 2. Local file deletion
-        files_to_delete = [
-            cwd / ".vmem.md",
-            cwd / ".vmem.yml",
-            cwd / ".agent" / "rules" / "vmem.md",
-        ]
+        # 2. Local file deletion
+        files_to_delete = []
+
+        # Remove .vmem directory
+        vmem_dir = cwd / ".vmem"
+        if vmem_dir.exists():
+            import shutil
+
+            try:
+                shutil.rmtree(vmem_dir)
+                print("✓ Deleted .vmem/ directory")
+            except OSError as e:
+                print(f"⚠ Could not delete .vmem/: {e}")
+
+        # Check all possible rule dirs
+        for dir_name in [".agent", ".claude", ".gemini", ".qwen", ".codex"]:
+            files_to_delete.append(cwd / dir_name / "rules" / "vmem.md")
 
         for file_path in files_to_delete:
             if file_path.exists():
@@ -1066,7 +1280,13 @@ For vmem commands and auto-save/retrieval behavior, read: `.vmem.md`
 
         # 3. Strip references from agent config files
         agent_files = ["CLAUDE.md", "GEMINI.md", "QWEN.md", "AGENTS.md"]
-        vmem_ref_snippet = "## Vector Memory\nFor vmem commands and auto-save/retrieval behavior, read: `.vmem.md`"
+
+        # Snippets to remove (handle both formats)
+        snippets = [
+            "\n## Vector Memory\nFor vmem commands and auto-save/retrieval behavior, read: `@.vmem/vmem.md`",
+            "\n## Vector Memory\nFor vmem commands and auto-save/retrieval behavior, read: `.vmem/vmem.md`",
+            "\n## Vector Memory\nFor vmem commands and auto-save/retrieval behavior, read: `.vmem.md`",
+        ]
 
         for filename in agent_files:
             filepath = cwd / filename
@@ -1075,8 +1295,14 @@ For vmem commands and auto-save/retrieval behavior, read: `.vmem.md`
                     with open(filepath, "r") as f:
                         content = f.read()
 
-                    if vmem_ref_snippet in content:
-                        new_content = content.replace(vmem_ref_snippet, "").strip()
+                    new_content = content
+                    cleaned = False
+                    for snippet in snippets:
+                        if snippet in new_content:
+                            new_content = new_content.replace(snippet, "").strip()
+                            cleaned = True
+
+                    if cleaned:
                         with open(filepath, "w") as f:
                             f.write(new_content)
                         print(f"✓ Cleaned {filename}")
@@ -1091,8 +1317,8 @@ For vmem commands and auto-save/retrieval behavior, read: `.vmem.md`
                     lines = f.readlines()
 
                 # Specific lines to remove
-                to_remove = {".vmem.md", ".vmem.yml", "# vmem"}
-                new_lines = [l for l in lines if l.strip() not in to_remove]
+                to_remove = {".vmem/", "# vmem"}
+                new_lines = [line for line in lines if line.strip() not in to_remove]
 
                 # If we have '# Agent tools' but nothing after it (or just empty lines), we could clean that too
                 # but let's keep it simple for now and just remove the most obvious artifacts.
@@ -1106,16 +1332,22 @@ For vmem commands and auto-save/retrieval behavior, read: `.vmem.md`
         # 5. Remove Claude hooks
         self.hooks("off")
 
-        print(f"\n✨ vmem has been completely uninitialized for this project.")
+        print("\n✨ vmem has been completely uninitialized for this project.")
 
-    def update_project(self):
+    def upgrade_docs(self):
         """Update vmem documentation in current project"""
         cwd = Path.cwd()
 
         files_to_update = [
-            (cwd / ".vmem.md", self._get_vmem_md_content()),
-            (cwd / ".agent" / "rules" / "vmem.md", self._get_gemini_rules_content()),
+            (cwd / ".vmem" / "vmem.md", self._get_vmem_md_content()),
         ]
+
+        # Update rules in all supported dirs if they exist
+        rule_content = self._get_gemini_rules_content()
+        for dir_name in [".agent", ".claude", ".gemini", ".qwen", ".codex"]:
+            rule_path = cwd / dir_name / "rules" / "vmem.md"
+            if rule_path.exists():
+                files_to_update.append((rule_path, rule_content))
 
         updated_count = 0
 
@@ -1223,7 +1455,7 @@ For vmem commands and auto-save/retrieval behavior, read: `.vmem.md`
 
             print("✓ Hooks enabled")
             print(f"  Config: {settings_path}")
-            print(f"  Make sure hook scripts exist in ~/.vmem/")
+            print("  Make sure hook scripts exist in ~/.vmem/")
 
         elif action == "off":
             if not claude_dir.exists():
@@ -1270,14 +1502,14 @@ For vmem commands and auto-save/retrieval behavior, read: `.vmem.md`
                 print(f"✗ Server returned {response.status_code}")
                 sys.exit(1)
         except requests.exceptions.ConnectionError:
-            print(f"✗ Cannot reach Vector API")
+            print("✗ Cannot reach Vector API")
             print(f"  URL: {self.base_url}")
             print(
-                f"  Check if the vector server is running and the ngrok tunnel is active"
+                "  Check if the vector server is running and the ngrok tunnel is active"
             )
             sys.exit(1)
         except requests.exceptions.Timeout:
-            print(f"✗ Request timed out")
+            print("✗ Request timed out")
             print(f"  URL: {self.base_url}")
             sys.exit(1)
         except requests.exceptions.RequestException as e:
@@ -1286,6 +1518,10 @@ For vmem commands and auto-save/retrieval behavior, read: `.vmem.md`
 
     def history(self, scope: str = "project", limit: int = 10):
         """List recent saves from collection"""
+        if scope == "project" and not self.is_initialized():
+            print("⚠️  Project not initialized. Run 'vmem init' first.", file=sys.stderr)
+            sys.exit(1)
+
         if scope == "project":
             project_id = self.get_project_id()
             payload = {"project_id": project_id, "limit": limit}
@@ -1334,7 +1570,61 @@ For vmem commands and auto-save/retrieval behavior, read: `.vmem.md`
             print(f"✗ Error fetching history: {e}", file=sys.stderr)
             sys.exit(1)
 
-    def prune(
+    def delete_history_by_index(
+        self, index: int, scope: str = "project", dry_run: bool = False
+    ):
+        """Delete a history entry by its visual index"""
+        # Fetch enough history to cover the index
+        limit = index + 5
+
+        # Suppress stdout temporarily since history() prints the list
+        import io
+        from contextlib import redirect_stdout
+
+        f = io.StringIO()
+        with redirect_stdout(f):
+            documents = self.history(scope=scope, limit=limit)
+
+        if not documents:
+            print(f"No history found in {scope} to delete from.", file=sys.stderr)
+            return
+
+        if index < 1 or index > len(documents):
+            print(f"Index {index} out of range (1-{len(documents)})", file=sys.stderr)
+            return
+
+        # Indices are 1-based for display, 0-based for list
+        target_doc = documents[index - 1]
+        doc_id = target_doc.get("id")
+        text = target_doc.get("text", "")[:50] + "..."
+
+        if not doc_id:
+            print("Error: Could not determine ID for this entry.", file=sys.stderr)
+            return
+
+        print(f"Target: [{index}] {text}")
+
+        if dry_run:
+            print("Dry run: No changes made.")
+            return
+
+        collection = (
+            f"project_{self.get_project_id()}" if scope == "project" else "global"
+        )
+
+        try:
+            response = requests.post(
+                f"{self.base_url}/delete/document",
+                headers=self.headers,
+                json={"collection": collection, "ids": [doc_id]},
+                timeout=30,
+            )
+            response.raise_for_status()
+            print(f"✓ Deleted item {index}")
+        except Exception as e:
+            print(f"✗ Failed to delete: {e}", file=sys.stderr)
+
+    def delete_bulk(
         self,
         scope: str = "project",
         older_than_days: int = None,
@@ -1343,6 +1633,10 @@ For vmem commands and auto-save/retrieval behavior, read: `.vmem.md`
         verbose: bool = False,
     ):
         """Remove duplicates and/or old entries from collection"""
+        if scope == "project" and not self.is_initialized():
+            print("⚠️  Project not initialized. Run 'vmem init' first.", file=sys.stderr)
+            sys.exit(1)
+
         from datetime import datetime, timedelta
         from collections import defaultdict
 
@@ -1380,19 +1674,15 @@ For vmem commands and auto-save/retrieval behavior, read: `.vmem.md`
 
                 documents.extend(batch)
                 offset += len(batch)
-                print(
-                    f"\rFetching documents from {collection}... {len(documents)}",
-                    end="",
-                    flush=True,
-                )
+                print(f" {len(documents)}...", end="", flush=True)
 
                 # Stop if we got fewer than limit (last page)
                 if len(batch) < 1000:
                     break
 
-            print(f"\rFetched {len(documents)} documents from {collection}     ")
+            print(f" Done. Total: {len(documents)}")
 
-        except requests.exceptions.RequestException as e:
+        except Exception as e:
             print(f"\n✗ Error fetching documents: {e}", file=sys.stderr)
             sys.exit(1)
 
@@ -1402,89 +1692,79 @@ For vmem commands and auto-save/retrieval behavior, read: `.vmem.md`
 
         to_delete = []
 
-        # Find duplicates (same text content)
+        # 1. Old entries
+        if older_than_days is not None:
+            cutoff = datetime.utcnow() - timedelta(days=older_than_days)
+            for doc in documents:
+                created_str = doc.get("metadata", {}).get("created_at")
+                if not created_str:
+                    continue
+                try:
+                    # Parse ISO format (handle potential Z)
+                    created_at = datetime.fromisoformat(
+                        created_str.replace("Z", "+00:00")
+                    )
+                    if created_at < cutoff.replace(tzinfo=created_at.tzinfo):
+                        to_delete.append(doc["id"])
+                        if verbose:
+                            print(
+                                f"  Target (Old): [{created_str[:10]}] {doc.get('text', '')[:30]}..."
+                            )
+                except ValueError:
+                    continue
+
+        # 2. Duplicates (exact text match)
         if duplicates:
-            text_to_docs = defaultdict(list)
+            seen_texts = defaultdict(list)
             for doc in documents:
                 text = doc.get("text", "")
-                text_to_docs[text].append(doc)
+                if text:
+                    seen_texts[text].append(doc)
 
-            for text, docs in text_to_docs.items():
+            for text, docs in seen_texts.items():
                 if len(docs) > 1:
-                    # Keep the newest (first), mark others for deletion
-                    for doc in docs[1:]:
-                        to_delete.append(doc)
-
-        # Find old entries
-        if older_than_days:
-            cutoff = datetime.utcnow() - timedelta(days=older_than_days)
-            cutoff_str = cutoff.isoformat() + "Z"
-
-            for doc in documents:
-                meta = doc.get("metadata", {})
-                created = meta.get("created_at", "")
-                if created and created < cutoff_str:
-                    if doc not in to_delete:
-                        to_delete.append(doc)
+                    # Keep the most recent one, delete others
+                    # documents are sorted by created_at desc, so index 0 is newest
+                    # Wait, list endpoint sorts by created_at desc.
+                    # So docs[0] is newest. Delete docs[1:]
+                    for duplicate in docs[1:]:
+                        to_delete.append(duplicate["id"])
+                        if verbose:
+                            print(
+                                f"  Target (Dupe): {duplicate.get('text', '')[:30]}..."
+                            )
 
         if not to_delete:
-            print(f"✓ Nothing to prune in {collection}")
+            print("No documents found matching criteria.")
             return
 
-        # Show what will be deleted
-        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-        print(f"🗑️  {'[DRY RUN] ' if dry_run else ''}Pruning {collection}:")
-        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-
-        for i, doc in enumerate(to_delete, 1):
-            meta = doc.get("metadata", {})
-            created = (
-                meta.get("created_at", "Unknown")[:10]
-                if meta.get("created_at")
-                else "Unknown"
-            )
-
-            if verbose:
-                # Verbose mode: show full details
-                print(f"\n[{i}] ID: {doc.get('id', 'Unknown')}")
-                print(f"    Created: {created}")
-                print(f"    Text: {doc.get('text', '')}")
-                if meta:
-                    print(f"    Metadata:")
-                    for key, value in meta.items():
-                        if key != "created_at":  # Already shown above
-                            print(f"      {key}: {value}")
-            else:
-                # Normal mode: show truncated text
-                text = doc.get("text", "")[:40] + (
-                    "..." if len(doc.get("text", "")) > 40 else ""
-                )
-                print(f"[{i}] {created} | {text}")
-
-        print(f"\nTotal to delete: {len(to_delete)}")
+        unique_ids = list(set(to_delete))
+        print(f"\nFound {len(unique_ids)} items to delete.")
 
         if dry_run:
-            print("\nℹ️  Dry run - no changes made. Remove --dry-run to delete.")
+            print("Dry run: No changes made.")
             return
 
-        # Actually delete
-        ids_to_delete = [doc["id"] for doc in to_delete]
+        confirm = input("Delete these items? [y/N]: ").strip().lower()
+        if confirm != "y":
+            print("Aborted.")
+            return
 
-        try:
-            response = requests.post(
-                f"{self.base_url}/delete/document",
-                headers=self.headers,
-                json={"collection": collection, "ids": ids_to_delete},
-                timeout=30,
-            )
-            response.raise_for_status()
-            result = response.json()
-            print(
-                f"\n✓ Deleted {result.get('deleted_count', len(ids_to_delete))} entries"
-            )
-        except requests.exceptions.RequestException as e:
-            print(f"✗ Error deleting: {e}", file=sys.stderr)
-            sys.exit(1)
+        # Batch delete
+        batch_size = 100
+        for i in range(0, len(unique_ids), batch_size):
+            batch = unique_ids[i : i + batch_size]
+            try:
+                response = requests.post(
+                    f"{self.base_url}/delete/document",
+                    headers=self.headers,
+                    json={"collection": collection, "ids": batch},
+                    timeout=30,
+                )
+                response.raise_for_status()
+                print(f"✓ Deleted batch {i // batch_size + 1}")
+            except Exception as e:
+                print(f"✗ Failed to delete batch: {e}")
 
 
 def main():
@@ -1574,15 +1854,10 @@ Examples:
 
     # Toggle command
     toggle_parser = subparsers.add_parser("toggle", help="Set auto-save mode")
-    toggle_parser.add_argument(
-        "mode", choices=["off", "on", "prompt"], help="Auto-save mode"
+    toggle_parser = subparsers.add_parser(
+        "toggle", help="Enable/disable/prompt auto-save"
     )
-    toggle_parser.add_argument(
-        "--scope",
-        choices=["global", "project"],
-        default="global",
-        help="Apply to global or current project",
-    )
+    toggle_parser.add_argument("mode", choices=["off", "on"], help="Auto-save mode")
 
     # Init command
     init_parser = subparsers.add_parser(
@@ -1597,8 +1872,14 @@ Examples:
         "uninit", help="Completely remove vmem from project (local & remote)"
     )
 
-    # Update command
-    subparsers.add_parser("update", help="Update vmem documentation files (vmem.md)")
+    # Update command (deprecated/internal alias)
+    # subparsers.add_parser("update", help="Update vmem documentation files (vmem.md)")
+
+    # Add-Agent command
+    subparsers.add_parser("add-agent", help="Add agent config files and folders")
+
+    # Upgrade-Docs command
+    subparsers.add_parser("upgrade-docs", help="Refresh documentation files")
 
     # Hooks command
     hooks_parser = subparsers.add_parser("hooks", help="Manage Claude Code hooks")
@@ -1621,47 +1902,6 @@ Examples:
         dest="global_scope",
         action="store_true",
         help="Show global collection history",
-    )
-
-    # Prune command
-    prune_parser = subparsers.add_parser(
-        "prune", help="Remove duplicates and old entries"
-    )
-    prune_parser.add_argument(
-        "what",
-        nargs="?",
-        choices=["compact"],
-        help="What to prune (compact = prune compacts only)",
-    )
-    prune_parser.add_argument(
-        "--dry-run", action="store_true", help="Preview without deleting"
-    )
-    prune_parser.add_argument(
-        "--duplicates", action="store_true", help="Remove entries with identical text"
-    )
-    prune_parser.add_argument(
-        "--older-than",
-        type=int,
-        metavar="DAYS",
-        help="Remove entries older than N days",
-    )
-    prune_parser.add_argument(
-        "--all",
-        dest="prune_all",
-        action="store_true",
-        help="Remove all (use with compact to remove all compacts)",
-    )
-    prune_parser.add_argument(
-        "--global",
-        dest="global_scope",
-        action="store_true",
-        help="Prune global collection",
-    )
-    prune_parser.add_argument(
-        "--verbose",
-        "-v",
-        action="store_true",
-        help="Show detailed information about entries",
     )
 
     # Compact command (save compact)
@@ -1698,16 +1938,43 @@ Examples:
 
     # Delete command
     delete_parser = subparsers.add_parser("delete", help="Delete specific items")
-    delete_parser.add_argument("what", choices=["compact"], help="What to delete")
-    delete_parser.add_argument("index", type=int, help="Index to delete (1=newest)")
     delete_parser.add_argument(
-        "--dry-run", action="store_true", help="Preview without deleting"
+        "target",
+        nargs="?",
+        help="Item to delete: 'compact', index number, or leave empty for bulk flags",
+    )
+    delete_parser.add_argument(
+        "index",
+        nargs="?",
+        type=int,
+        help="Index to delete (required if target is 'compact')",
     )
     delete_parser.add_argument(
         "--global",
         dest="global_scope",
         action="store_true",
         help="Delete from global collection",
+    )
+    delete_parser.add_argument(
+        "--days", "--older-than", dest="days", type=int, help="Delete older than N days"
+    )
+    delete_parser.add_argument(
+        "--dupes",
+        "--duplicates",
+        dest="duplicates",
+        action="store_true",
+        help="Delete duplicates",
+    )
+    delete_parser.add_argument(
+        "--dry-run", action="store_true", help="Preview without deleting"
+    )
+    delete_parser.add_argument(
+        "--all",
+        action="store_true",
+        help="Delete all items (use with caution, mostly for compacts)",
+    )
+    delete_parser.add_argument(
+        "-v", "--verbose", action="store_true", help="Verbose output"
     )
 
     args = parser.parse_args()
@@ -1746,7 +2013,7 @@ Examples:
         vm.status(json_output=args.json_output)
 
     elif args.command == "toggle":
-        vm.toggle(args.mode, scope=args.scope)
+        vm.toggle(args.mode)
 
     elif args.command == "init":
         enable_hooks = (
@@ -1760,8 +2027,11 @@ Examples:
     elif args.command == "hooks":
         vm.hooks(args.action)
 
-    elif args.command == "update":
-        vm.update_project()
+    elif args.command == "add-agent":
+        vm.add_agent()
+
+    elif args.command == "upgrade-docs":
+        vm.upgrade_docs()
 
     elif args.command == "ping":
         vm.ping()
@@ -1769,25 +2039,6 @@ Examples:
     elif args.command == "history":
         scope = "global" if args.global_scope else "project"
         vm.history(scope=scope, limit=args.limit)
-
-    elif args.command == "prune":
-        scope = "global" if args.global_scope else "project"
-        if args.what == "compact":
-            vm.prune_compact(
-                scope=scope,
-                older_than_days=args.older_than,
-                prune_all=args.prune_all,
-                dry_run=args.dry_run,
-                verbose=args.verbose,
-            )
-        else:
-            vm.prune(
-                scope=scope,
-                older_than_days=args.older_than,
-                duplicates=args.duplicates,
-                dry_run=args.dry_run,
-                verbose=args.verbose,
-            )
 
     elif args.command == "compact":
         scope = "global" if args.global_scope else "project"
@@ -1799,11 +2050,67 @@ Examples:
             vm.retrieve_compact(index=args.index, scope=scope, show_all=args.show_all)
 
     elif args.command == "delete":
-        if args.what == "compact":
-            scope = "global" if args.global_scope else "project"
-            vm.delete_compact_by_index(
-                index=args.index, scope=scope, dry_run=args.dry_run
+        scope = "global" if args.global_scope else "project"
+
+        # Helper to check if any bulk flag is set
+        is_bulk = args.days is not None or args.duplicates
+
+        if args.target == "compact":
+            # Check for bulk flags first
+            is_compact_bulk = args.days is not None or getattr(args, "all", False)
+
+            if is_compact_bulk:
+                vm.delete_compact_bulk(
+                    scope=scope,
+                    older_than_days=args.days,
+                    delete_all=getattr(args, "all", False),
+                    dry_run=args.dry_run,
+                    verbose=args.verbose,
+                )
+            elif args.index is None:
+                print(
+                    "Usage: vmem delete compact <index> OR vmem delete compact --older-than <days>",
+                    file=sys.stderr,
+                )
+                sys.exit(1)
+            else:
+                vm.delete_compact_by_index(
+                    index=args.index, scope=scope, dry_run=args.dry_run
+                )
+        elif is_bulk:
+            if args.target:
+                print(
+                    f"⚠️  Ignoring target '{args.target}' because bulk flags are set.",
+                    file=sys.stderr,
+                )
+
+            # Call delete_bulk
+            vm.delete_bulk(
+                scope=scope,
+                older_than_days=args.days,
+                duplicates=args.duplicates,
+                dry_run=args.dry_run,
+                verbose=args.verbose,
             )
+        elif args.target:
+            # Check if target is an integer (delete by history index)
+            try:
+                index = int(args.target)
+                vm.delete_history_by_index(
+                    index=index, scope=scope, dry_run=args.dry_run
+                )
+            except ValueError:
+                print(
+                    f"Unknown delete target: '{args.target}'.\nUse 'compact', an integer index, or flags like --duplicates.",
+                    file=sys.stderr,
+                )
+                sys.exit(1)
+        else:
+            print(
+                "Error: Specify a target (index/compact) or use bulk flags (--days/--dupes).",
+                file=sys.stderr,
+            )
+            sys.exit(1)
 
 
 if __name__ == "__main__":

@@ -4,11 +4,53 @@
 
 Universal CLI for vector memory operations. Works with any AI agent.
 
-**New Commands:** `ping`, `history`, `prune`, `init on`, `save compact`, `retrieve compact`
-
 ---
 
 ## Commands
+
+### vmem init
+
+Initialize vmem in current project.
+
+```bash
+# Basic init (auto_save: off)
+vmem init
+
+# Init with auto-save ON and Claude Code hooks
+vmem init on
+```
+
+**`vmem init` creates:**
+
+- `.vmem.md` — Agent instructions
+- `.vmem.yml` — Auto-save config (off)
+- Updates `CLAUDE.md`, `AGENTS.md`, etc.
+
+**`vmem init on` also creates:**
+
+- `.vmem.yml` — Auto-save config (on)
+- `.claude/settings.json` — Claude Code hooks enabled
+
+
+---
+
+### vmem add-agent
+
+Add agent configuration files (e.g. `CLAUDE.md`) and rule directories (e.g. `.claude/rules`) to an existing project.
+
+```bash
+vmem add-agent
+```
+
+### vmem upgrade-docs
+
+Refresh documentation files (e.g. `vmem.md` references) in the current project. Useful after updating the vmem tool itself.
+
+```bash
+vmem upgrade-docs
+```
+
+---
 
 ### vmem save
 
@@ -118,14 +160,9 @@ Vector API: https://...ngrok-free.dev
 Set auto-save mode.
 
 ```bash
-# Set global auto-save
+# Set project auto-save
 vmem toggle on
 vmem toggle off
-vmem toggle prompt
-
-# Set project auto-save (creates .vmem.yml)
-vmem toggle on --scope project
-vmem toggle off --scope project
 ```
 
 **Modes:**
@@ -133,7 +170,6 @@ vmem toggle off --scope project
 |------|-------------|
 | `off` | Auto-save disabled |
 | `on` | Auto-save enabled |
-| `prompt` | Ask before saving |
 
 ---
 
@@ -196,95 +232,6 @@ vmem history --global
 
 ---
 
-### vmem prune
-
-Remove duplicates and old entries.
-
-```bash
-# Dry run - show what would be deleted
-vmem prune --dry-run
-
-# Remove duplicate entries (same text)
-vmem prune --duplicates
-
-# Remove entries older than 30 days
-vmem prune --older-than 30
-
-# Combine options
-vmem prune --duplicates --older-than 90
-```
-
-**Options:**
-| Option | Description |
-|--------|-------------|
-| `--dry-run` | Preview without deleting |
-| `--duplicates` | Remove entries with identical text |
-| `--older-than DAYS` | Remove entries older than N days |
-| `--global` | Prune global collection |
-
-**When to Use:**
-
-- 🧹 **Monthly maintenance** — Run `vmem prune --duplicates` to clean up accidental duplicate saves
-- 📅 **Project milestones** — After major releases, prune old entries: `vmem prune --older-than 90`
-- 💾 **Before backups** — Clean up with `--dry-run` first to review what will be removed
-- 🔄 **After heavy iteration** — If you've been saving frequently during debugging, prune duplicates
-
-**Example workflow:**
-
-```bash
-# 1. First, see what would be deleted
-vmem prune --duplicates --older-than 60 --dry-run
-
-# 2. If the preview looks good, run for real
-vmem prune --duplicates --older-than 60
-```
-
----
-
-### vmem init
-
-Initialize vmem in current project.
-
-```bash
-# Basic init (auto_save: off)
-vmem init
-
-# Init with auto-save ON and Claude Code hooks
-vmem init on
-```
-
-**`vmem init` creates:**
-
-- `.vmem.md` — Agent instructions
-- `.vmem.yml` — Auto-save config (off)
-- Updates `CLAUDE.md`, `AGENTS.md`, etc.
-
-**`vmem init on` also creates:**
-
-- `.vmem.yml` — Auto-save config (on)
-- `.claude/settings.json` — Claude Code hooks enabled
-
----
-
-### vmem uninit
-
-Completely remove vmem from the current project. This is a destructive operation that clears both local artifacts and remote data.
-
-```bash
-vmem uninit
-```
-
-**`vmem uninit` performs:**
-
-1. **Confirms** with the user before proceeding.
-2. **Deletes remote data**: Drops the project collection on the server.
-3. **Deletes local files**: Removes `.vmem.md`, `.vmem.yml`, and `.agent/rules/vmem.md`.
-4. **Cleans agent configs**: Strips vmem references from `CLAUDE.md`, `GEMINI.md`, etc.
-5. **Cleans .gitignore**: Removes vmem-related entries.
-6. **Disables hooks**: Removes vmem hooks from `.claude/settings.json`.
-
----
-
 ### vmem save compact
 
 Save a comprehensive project snapshot. Unlike regular saves (2-4 sentences), compacts can be long. Only 5 compacts are kept per project — oldest is auto-deleted when 6th is added.
@@ -336,17 +283,72 @@ vmem retrieve compact --global
 
 ---
 
+### vmem delete
+
+Delete specific memories or compacts.
+
+```bash
+# Delete a memory by its history index
+# (Use 'vmem history' to see indices like [1], [2]...)
+vmem delete 1
+
+# Delete a specific compact by index (1=newest)
+vmem delete compact 1
+
+# Bulk delete: Remove duplicates (same text)
+vmem delete --duplicates
+
+# Bulk delete: Remove entries older than 30 days
+vmem delete --days 30
+
+# Bulk delete: Remove older compacts
+vmem delete compact --older-than 30
+
+# Preview changes without deleting
+vmem delete --duplicates --older-than 60 --dry-run
+```
+
+**Options:**
+| Option | Description |
+|--------|-------------|
+| `--duplicates` | Remove entries with identical text |
+| `--days N` / `--older-than N` | Remove entries older than N days |
+| `--dry-run` | Preview without deleting |
+| `--global` | Delete from global collection |
+
+---
+
+### vmem uninit
+
+Completely remove vmem from the current project. This is a destructive operation that clears both local artifacts and remote data.
+
+```bash
+vmem uninit
+```
+
+**`vmem uninit` performs:**
+
+1. **Confirms** with the user before proceeding.
+2. **Deletes remote data**: Drops the project collection on the server.
+3. **Deletes local files**: Removes `.vmem.md`, `.vmem.yml`, and `.agent/rules/vmem.md`.
+4. **Cleans agent configs**: Strips vmem references from `CLAUDE.md`, `GEMINI.md`, etc.
+5. **Cleans .gitignore**: Removes vmem-related entries.
+6. **Disables hooks**: Removes vmem hooks from `.claude/settings.json`.
+
 ## Architecture
 
+Local Workstation Remote Server
+
 ```
-Local Workstation                  Remote Server
-┌──────────────────┐             ┌──────────────────┐
-│ AI Agent         │             │ Vector API       │
-│ (Claude Code)    │             │ (FastAPI)        │
-│       ↓          │   HTTP      │       ↓          │
-│ vmem CLI         │ ──────────> │ ChromaDB         │
-│ (~/.bin/vmem)    │   ngrok     │ (port 8080)      │
-└──────────────────┘             └──────────────────┘
+  Local Workstation                       Remote Server
+┌─────────────────────┐               ┌──────────────────┐
+│      AI Agent       │               │    Vector API    │
+│    (Claude Code)    │               │    (FastAPI)     │
+│         ↓           │     HTTP      │        ↓         │
+│      vmem CLI       │ ────────────> │     ChromaDB     │
+│    (~/.bin/vmem)    │     ngrok     │   (port 8080)    │
+└─────────────────────┘               └──────────────────┘
+
 ```
 
 ---
