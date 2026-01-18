@@ -4,7 +4,7 @@ vmem - Universal Vector Memory CLI
 Works with any AI agent (Claude Code, Codex, Gemini, etc.)
 """
 
-__version__ = "1.1.3"
+__version__ = "1.1.4"
 
 import os
 import sys
@@ -643,7 +643,6 @@ class VectorMemory:
             print("Project Auto-save mode: not set")
 
         print(f"Current project: {self.get_project_id()}")
-        print(f"Vector API: {self.base_url}")
 
         # Local Status
         if is_init:

@@ -68,20 +68,29 @@ curl -X POST "http://localhost:8080/query/project" \
   -d '{"project_id": "my-app", "query": "docs", "top_k": 5}'
 ```
 
-## External Access (via ngrok)
+## Network Access (via Tailscale)
 
-The ngrok URL `https://your-ngrok-url.ngrok-free.dev` should forward to port 8080.
+Tailscale is the recommended secure way to access your server without exposing it to the public internet. See [../docs/tailscale-setup.md](../docs/tailscale-setup.md) for details.
 
-Update ngrok config to point to 8080:
+1.  **Install Tailscale** on both Server and Client.
+2.  **Get Server IP**: Run `tailscale ip` on the server (e.g., `100.x.y.z`).
+3.  **Test Access**:
 
-```yaml
-tunnels:
-  vector-api:
-    addr: 8080
-    proto: http
+```bash
+export VECTOR_URL="http://100.x.y.z:8080"
+curl -X POST "$VECTOR_URL/write/global" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"text": "test", "metadata": {}}'
 ```
 
-Then test externally:
+### Alternative: Public Access (via ngrok)
+
+If you cannot use Tailscale, you can use ngrok to expose port 8080. See [../docs/ngrok-setup.md](../docs/ngrok-setup.md) for details.
+
+1.  **Configure ngrok** on the server to point to 8080.
+2.  **Start Tunnel**: `ngrok http 8080`
+3.  **Test Access**:
 
 ```bash
 export VECTOR_URL="https://your-ngrok-url.ngrok-free.dev"
