@@ -1,21 +1,17 @@
 # vmem
 .vmem/
 
-# Agent tools
-.agent/
+## AI Agents
+.rulez/
 .claude/
+.agent/
 .codex/
-.code-graph/
-
-# Agent markdown files
-AGENTS.md
+.gemini/
+.qwen/
 CLAUDE.md
 GEMINI.md
 QWEN.md
+AGENTS.md
 
-# Etc.
-
-# AI Agents
-.rulez/
-.gemini/
-.qwen/
+# Code-Graph
+.code-graph/
