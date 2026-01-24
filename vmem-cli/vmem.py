@@ -731,6 +731,18 @@ After completing implementation tasks:
 ✅ Key findings and conclusions from research/exploration
 ❌ Pure questions without answers, incomplete brainstorming
 ❌ Long documentation dumps (keep saves to 2-4 sentences max)
+❌ API keys, passwords, tokens, or any PII (see security note below)
+
+**⚠️ SECURITY: Always redact sensitive data before saving:**
+- API keys/tokens → `[REDACTED_API_KEY]`
+- Passwords/secrets → `[REDACTED]`
+- Email addresses → `[REDACTED_EMAIL]`
+- Phone numbers → `[REDACTED_PHONE]`
+- IP addresses → `[REDACTED_IP]`
+- Personal names → `[REDACTED_NAME]` or use generic terms
+- Physical addresses → `[REDACTED_ADDRESS]`
+- Credit card numbers → `[REDACTED_CC]`
+- Social Security Numbers → `[REDACTED_SSN]`
 
 **Save format:** WHAT was done + WHY it matters + KEY function names
 
@@ -810,6 +822,26 @@ After completing a task, you MUST consider saving technical insights for the fut
     - **Action**: Automatically run `vmem save "Summary of what was done..."`.
     - **Content**: Keep it concise (2-4 sentences). Focus on _decisions_ and _patterns_, not just file edits.
 3.  **If OFF**: Do NOT auto-save. Wait for user instruction.
+
+### Security & Privacy Guidelines
+
+**CRITICAL: Before saving to vmem, ALWAYS redact sensitive information:**
+
+- **Credentials:** API keys, tokens, passwords, secrets, certificates
+- **PII (Personally Identifiable Information):**
+  - Email addresses
+  - Phone numbers
+  - Full names (use role/generic terms when possible)
+  - Physical addresses
+  - IP addresses
+  - Social Security Numbers, Tax IDs
+  - Credit card numbers
+  - Date of birth
+- **Use clear placeholders:** `[REDACTED_API_KEY]`, `[REDACTED_EMAIL]`, `[REDACTED]`
+
+**Example:**
+- ❌ BAD: "Fixed auth using API key sk-abc123xyz"
+- ✅ GOOD: "Fixed auth using API key [REDACTED_API_KEY]"
 
 ### Manual Save
 
